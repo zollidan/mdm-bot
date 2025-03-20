@@ -11,7 +11,7 @@ from bot.config import database_url
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from bot.database import Base
 from alembic import context
-from bot.model import User
+from bot.model import User, Product
 
 config = context.config
 config.set_main_option("sqlalchemy.url", database_url)

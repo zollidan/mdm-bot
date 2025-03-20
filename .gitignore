@@ -1,5 +1,8 @@
 __pycache__
 /venv
+.venv
+uv.lock
+.ruff_cache
 .env
 bot/log.txt
 .idea

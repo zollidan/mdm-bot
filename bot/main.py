@@ -1,11 +1,9 @@
 from os.path import abspath, dirname
 import sys
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-
 import asyncio
-from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
-from bot.config import bot, dp, admin
+from bot.config import bot, dp
 from bot.database_middleware import DatabaseMiddlewareWithCommit, DatabaseMiddlewareWithoutCommit
 
 from bot.handlers.start import start_router

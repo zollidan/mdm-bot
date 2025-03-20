@@ -1,5 +1,4 @@
 import os
-from typing import List
 from loguru import logger
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
