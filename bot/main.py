@@ -1,40 +1,53 @@
 from os.path import abspath, dirname
 import sys
+
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
+
 import asyncio
+from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
-from bot.config import bot, dp
-from bot.database_middleware import DatabaseMiddlewareWithCommit, DatabaseMiddlewareWithoutCommit
 
-from bot.handlers.start import start_router
+from bot.config import bot, admins, dp
+from bot.dao.database_middleware import DatabaseMiddlewareWithoutCommit, DatabaseMiddlewareWithCommit
+from bot.user.user_router import user_router
 
+# Функция, которая настроит командное меню (дефолтное для всех пользователей)
+async def set_commands():
+    commands = [BotCommand(command='start', description='Старт')]
+    await bot.set_my_commands(commands, BotCommandScopeDefault())
+
+# Функция, которая выполнится, когда бот запустится
 async def start_bot():
-    # try:
-    #     await bot.send_message(admin, f'Бот запущен.')
-    # except:
-    #     pass
-    logger.info("Бот запущен.")
+    await set_commands()
+    for admin_id in admins:
+        try:
+            await bot.send_message(admin_id, 'Я запущен🥳.')
+        except:
+            pass
+    logger.info("Бот успешно запущен.")
 
+# Функция, которая выполнится, когда бот завершит свою работу
 async def stop_bot():
-    # try:
-    #     await bot.send_message(admin, 'Бот остановлен.')
-    # except:
-    #     pass
-    logger.error("Бот остановлен.")
+    try:
+        for admin_id in admins:
+            await bot.send_message(admin_id, 'Бот остановлен. За что?😔')
+    except:
+        pass
+    logger.error("Бот остановлен!")
 
 async def main():
-    
-    # добавление блок управления сессиями и бд 
+    # Регистрация мидлварей
     dp.update.middleware.register(DatabaseMiddlewareWithoutCommit())
     dp.update.middleware.register(DatabaseMiddlewareWithCommit())
 
-    # роутеры
-    dp.include_router(start_router)
-    
-    # команлды старт/стоп
+    # Регистрация роутеров
+    dp.include_router(user_router)
+
+    # Регистрация функций
     dp.startup.register(start_bot)
     dp.shutdown.register(stop_bot)
 
+    # Запуск бота в режиме long polling
     try:
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())

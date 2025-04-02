@@ -1,7 +1,7 @@
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery
-from bot.database import async_session
+from bot.dao.database import async_session_maker
 
 class BaseDatabaseMiddleware(BaseMiddleware):
     async def __call__(
@@ -10,7 +10,7 @@ class BaseDatabaseMiddleware(BaseMiddleware):
         event: Message | CallbackQuery,
         data: Dict[str, Any]
     ) -> Any:
-        async with async_session() as session:
+        async with async_session_maker() as session:
             self.set_session(data, session)  # Устанавливаем сессию
             try:
                 result = await handler(event, data)  # Обрабатываем событие
@@ -29,12 +29,13 @@ class BaseDatabaseMiddleware(BaseMiddleware):
     async def after_handler(self, session) -> None:
         """Метод для выполнения действий после обработки события. По умолчанию ничего не делает."""
         pass
-    
+
+
 class DatabaseMiddlewareWithoutCommit(BaseDatabaseMiddleware):
     def set_session(self, data: Dict[str, Any], session) -> None:
         """Устанавливаем сессию без коммита."""
         data['session_without_commit'] = session
-        
+
 class DatabaseMiddlewareWithCommit(BaseDatabaseMiddleware):
     def set_session(self, data: Dict[str, Any], session) -> None:
         """Устанавливаем сессию с коммитом."""
