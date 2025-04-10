@@ -1,7 +1,15 @@
 from typing import List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, ForeignKey
+from sqlalchemy import BigInteger, Boolean, Float, Integer, String, Text, ForeignKey
 from bot.dao.database import Base
+
+
+from sqlalchemy import UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, Text, BigInteger
+from bot.dao.database import Base
+
+# Если необходимо, добавьте связи favorites к существующим моделям User и Product
 
 
 class User(Base):
@@ -9,38 +17,45 @@ class User(Base):
     username: Mapped[str | None]
     first_name: Mapped[str | None]
     last_name: Mapped[str | None]
-    purchases: Mapped[List['Purchase']] = relationship(
-        "Purchase",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
 
     def __repr__(self):
         return f"<User(id={self.id}, telegram_id={self.telegram_id}, username='{self.username}')>"
 
+
 class Product(Base):
-    name: Mapped[str] = mapped_column(Text)
+    __tablename__ = 'products'
+
+    offer_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
+    url: Mapped[str] = mapped_column(String, nullable=False)
+    price: Mapped[float] = mapped_column(Float)
+    currency: Mapped[str] = mapped_column(String(10))
+    category_id: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String)
+    model: Mapped[str] = mapped_column(String)
+    vendor: Mapped[str] = mapped_column(String)
+    vendor_code: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(Text)
-    price: Mapped[int]
-    file_id: Mapped[str | None] = mapped_column(Text)
-    hidden_content: Mapped[str] = mapped_column(Text)
-    purchases: Mapped[List['Purchase']] = relationship(
-        "Purchase",
-        back_populates="product",
-        cascade="all, delete-orphan"
-    )
+    warranty: Mapped[bool] = mapped_column(Boolean, default=False)
+    pictures: Mapped[str] = mapped_column(Text)  # возможно, это список ссылок в виде строки
+    wholesale_price: Mapped[float] = mapped_column(Float)
+    bestseller: Mapped[bool] = mapped_column(Boolean, default=False)
+    unit: Mapped[str] = mapped_column(String(10))
+    price_ue: Mapped[float] = mapped_column(Float)
+    stock_moscow_chashnikovo: Mapped[str] = mapped_column(String)  # строка типа "более 100"
+    stock_moscow_kantemirovskaya: Mapped[int] = mapped_column(Integer)
+    stock_spb: Mapped[int] = mapped_column(Integer)
+    stock_voronezh: Mapped[int] = mapped_column(Integer)
+    price_legal_by: Mapped[float] = mapped_column(Float)
+    price_individual_by: Mapped[float] = mapped_column(Float)
+    availability: Mapped[str] = mapped_column(String(20))  # например, "есть"
+    product_status: Mapped[str] = mapped_column(String(50))
 
-    def __repr__(self):
-        return f"<Product(id={self.id}, name='{self.name}', price={self.price})>"
+class Favorite(Base):
+    __tablename__ = 'favorites'
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="unique_favorite"),)
 
-
-class Purchase(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     product_id: Mapped[int] = mapped_column(ForeignKey('products.id'))
-    price: Mapped[int]
-    payment_id: Mapped[str] = mapped_column(unique=True)
-    user: Mapped["User"] = relationship("User", back_populates="purchases")
-    product: Mapped["Product"] = relationship("Product", back_populates="purchases")
 
-    def __repr__(self):
-        return f"<Purchase(id={self.id}, user_id={self.user_id}, product_id={self.product_id}, date={self.created_at})>"
+    user: Mapped["User"] = relationship("User", backref="favorites")
+    product: Mapped["Product"] = relationship("Product", backref="favorited_by")

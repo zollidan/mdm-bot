@@ -1,3 +1,7 @@
 .venv
 .env
 uv.lock
+.idea
+bot/log.txt
+__pycache__
+.ruff_cache
