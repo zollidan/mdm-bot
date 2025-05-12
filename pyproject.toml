@@ -9,4 +9,5 @@ dependencies = [
     "art>=6.5",
     "logging>=0.4.9.6",
     "pydantic-settings>=2.9.1",
+    "sqlalchemy>=2.0.40",
 ]
