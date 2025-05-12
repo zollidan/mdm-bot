@@ -11,3 +11,14 @@ dependencies = [
     "pydantic-settings>=2.9.1",
     "sqlalchemy>=2.0.40",
 ]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+select = ["E", "F", "B", "I", "N", "UP", "ANN", "RUF"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]

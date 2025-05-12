@@ -5,7 +5,7 @@ import os
 from aiogram import F, Bot, Dispatcher
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -262,9 +262,9 @@ async def profile_page(callback: CallbackQuery):
         with Session(engine) as session:
             stmt = select(User).where(User.telegram_id == callback.from_user.id)
             user = session.scalars(stmt).first()
-    except:
-        logger.error("Ошибка при получении пользователя")
-        return callback.message.answer(f"Произошла ошибка при получении пользователя")
+    except Exception as e:
+        logger.error(f"Ошибка при получении пользователя: {e}")
+        return callback.message.answer("Произошла ошибка при получении пользователя")
     return callback.message.answer(f"Ваш профиль:\n\n{user.name}\n{user.phone_number}\n{user.address}", reply_markup=editProfileKb())
 
 @dp.callback_query(F.data == 'orders')
