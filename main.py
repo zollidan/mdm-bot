@@ -170,6 +170,7 @@ async def command_start_handler(message: Message) -> None:
 
 @dp.callback_query(F.data == "main_page")
 async def main_page(callback: CallbackQuery):
+    await callback.answer("")
     return callback.message.answer("Вы на главной страницу чтобы продолжить выберите действие!", reply_markup=main_kb())
 
 @dp.callback_query(F.data == "search")
@@ -257,6 +258,7 @@ async def favorites_list(callback: CallbackQuery):
 
 @dp.callback_query(F.data == 'profile')
 async def profile_page(callback: CallbackQuery):
+    await callback.answer("")
     logger.info(f"Parsing user {callback.from_user.id} profile page")
     try:
         with Session(engine) as session:
@@ -291,6 +293,7 @@ async def orders_list(callback: CallbackQuery):
         await callback.message.answer("Ошибка при получении избранных товаров")
 @dp.callback_query(F.data == 'help')
 async def help_page(callback: CallbackQuery):
+    await callback.answer("")
     return callback.message.answer("Если возникли проблемы вы можете нам написать или позвонить и менеджер сразу вам перезвонит!\n Наши контакты:\nТелефон: 839819381", reply_markup=helpKb(callback.from_user.id))
 
 async def main() -> None:
