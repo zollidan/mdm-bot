@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import os
+from typing import List, Optional
 from aiogram import F, Bot, Dispatcher
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -10,12 +11,17 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from art import tprint
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, PrimaryKeyConstraint, create_engine, select
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, PrimaryKeyConstraint, create_engine, select
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase, Session, Mapped, mapped_column, relationship
 
 class Settins(BaseSettings):
     BOT_TOKEN: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: str
+    POSTGRES_DB: str
     
     model_config = SettingsConfigDict(env_file= os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -23,7 +29,9 @@ settings = Settins()
 
 logger = logging.getLogger(__name__)
 dp = Dispatcher()
-engine = create_engine("sqlite:///database.db", echo=True)
+url = f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
+
+engine = create_engine(url, echo=True)
 
 class Base(DeclarativeBase):
     created_date = Column(DateTime, default=datetime.datetime.now())
@@ -47,13 +55,26 @@ class Product(Base):
     __tablename__ = 'products'
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String())
-    vendor_code: Mapped[str] = mapped_column(String())
-    price: Mapped[float] = mapped_column(Float())
-    image: Mapped[str] = mapped_column(String())
+    url: Mapped[str] = mapped_column(String())  # URL товара
+    name: Mapped[str] = mapped_column(String())  # Название товара
+    vendor_code: Mapped[str] = mapped_column(String())  # Код поставщика
+    price: Mapped[float] = mapped_column(Float())  # Цена в рублях
+    currency_id: Mapped[str] = mapped_column(String())  # Валюта (например, "RUR")
+    category_id: Mapped[int] = mapped_column(Integer)  # ID категории
+    model: Mapped[str] = mapped_column(String())  # Модель товара
+    vendor: Mapped[str] = mapped_column(String())  # Производитель
+    description: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Описание товара
+    manufacturer_warranty: Mapped[bool] = mapped_column(Boolean())  # Гарантия производителя
+    image: Mapped[str] = mapped_column(String())  # URL изображения (первое из списка Pictures)
+    opt_price: Mapped[Optional[float]] = mapped_column(Float(), nullable=True)  # Оптовая цена (Цена ОПТ, RUR)
+    is_bestseller: Mapped[bool] = mapped_column(Boolean())  # Хит продаж (True/False)
+    unit: Mapped[str] = mapped_column(String())  # Единица измерения (шт, кг и т.д.)
+    usd_price: Mapped[Optional[float]] = mapped_column(Float(), nullable=True)  # Цена в у.е. (Цена у.е.)
+    availability: Mapped[str] = mapped_column(String())  # Наличие (есть/нет)
+    status: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Статус товара
     
-    favorites: Mapped[list["Favorite"]] = relationship(back_populates="product")
-    orders: Mapped[list["Orders"]] = relationship(back_populates="product")
+    favorites: Mapped[List["Favorite"]] = relationship(back_populates="product")
+    orders: Mapped[List["Orders"]] = relationship(back_populates="product")
     
 class User(Base):
     __tablename__ = 'users'
@@ -166,7 +187,7 @@ async def command_start_handler(message: Message) -> None:
             logger.info(f"User {message.from_user.id} added to db")
             return await message.answer("Привет! Я бот, который поможет тебе найти нужный товар. Чтобы начать, выбери один из пунктов меню ниже.", reply_markup=main_kb())
 
-    await message.answer(f"Hello {message.from_user.username}, Преветственное сообщение!", reply_markup=main_kb())
+    return await message.answer(f"Hello {message.from_user.username}, Преветственное сообщение!", reply_markup=main_kb())
 
 @dp.callback_query(F.data == "main_page")
 async def main_page(callback: CallbackQuery):

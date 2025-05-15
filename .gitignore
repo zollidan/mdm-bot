@@ -1,3 +1,7 @@
 .env
 mdm.log
 database.db
+__pycache__
+.ruff_cache
+.venv
+old_db_lite.csv
