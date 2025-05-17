@@ -16,6 +16,7 @@ from models import *
 from database import *
 from kbs import *
 from config import settings
+from utils import *
 
 logger = logging.getLogger(__name__)
 dp = Dispatcher()
@@ -48,7 +49,7 @@ async def command_start_handler(message: Message) -> None:
         "Для начала работы выберите одно из действий на клавиатуре ниже 👇"
     )
     
-    with Session(engine) as session:
+    with Session() as session:
         logger.info(f"User {message.from_user.id} find in db")
         stmt = select(User).where(User.telegram_id == message.from_user.id)
         user = session.scalar(stmt)
@@ -88,27 +89,13 @@ async def main_page(callback: CallbackQuery):
     await callback.answer("")
 
     try:
-        with Session(engine) as session:
+        with Session() as session:
             user = session.query(User).filter(User.telegram_id == callback.from_user.id).first()
             cart_count = session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).count()
             favorites_count = session.query(Favorite).filter(Favorite.user_id == callback.from_user.id).count()
             orders_count = session.query(Orders).filter(Orders.user_id == callback.from_user.id).count()
-    
-            # Персонализированное приветствие
-            greeting = f"👋 Здравствуйте, {user.name}!" if user else "👋 Здравствуйте!"
-            
-            main_page_text = (
-                f"{greeting}\n\n"
-                f"🛍 <b>MDM Store - ваш надежный поставщик</b>\n\n"
-                f"📊 <b>Ваша статистика:</b>\n"
-                f"🛒 Товаров в корзине: {cart_count}\n"
-                f"⭐ Избранных товаров: {favorites_count}\n"
-                f"📦 Активных заказов: {orders_count}\n\n"
-                f"📣 <b>Специальные предложения:</b>\n"
-                f"• Скидка 10% на все товары до 30 мая\n"
-                f"• Бесплатная доставка при заказе от 5000 руб.\n\n"
-                f"Выберите действие на клавиатуре ниже 👇"
-            )
+
+            main_page_text = make_main_page_text(user, cart_count, favorites_count, orders_count)
             
             return await callback.message.edit_text(
                 main_page_text, 
@@ -167,7 +154,7 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
     
     await state.clear()  # Очищаем состояние после получения данных
     
-    with Session(engine) as session:
+    with Session() as session:
         logger.info(f"User {user_id} search by vendor code: {vendor_code}")
         try:
             stmt = select(Product).where(Product.vendor_code == vendor_code)
@@ -193,22 +180,7 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
             is_favorite = favorite is not None
             
             # Формируем подробное описание товара
-            product_info = (
-                f"<b>{product.name}</b>\n\n"
-                f"📋 <b>Информация о товаре:</b>\n"
-                f"📊 Артикул: {product.vendor_code}\n"
-                f"💰 Цена: {product.price} руб.\n"
-                f"🏭 Производитель: {product.vendor}\n"
-                f"📦 Наличие: {product.availability}\n\n"
-            )
-            
-            if product.description:
-                product_info += f"📝 <b>Описание:</b>\n{product.description[:300]}{'...' if len(product.description) > 300 else ''}\n\n"
-            
-            product_info += f"⚙️ Модель: {product.model}\n"
-            
-            if product.is_bestseller:
-                product_info += "🔥 <b>ХИТ ПРОДАЖ!</b>\n\n"
+            product_info = make_product_card(product)
             
             # Отправляем фото с описанием товара
             return await message.answer_photo(
@@ -233,7 +205,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
     
     await state.clear()  # Очищаем состояние после получения данных
     
-    with Session(engine) as session:
+    with Session() as session:
         logger.info(f"User {user_id} search by name: {search_term}")
         try:
             # Поиск по частичному совпадению с названием
@@ -265,17 +237,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
                 is_favorite = favorite is not None
                 
                 # Формируем подробное описание товара
-                product_info = (
-                    f"<b>{product.name}</b>\n\n"
-                    f"📋 <b>Информация о товаре:</b>\n"
-                    f"📊 Артикул: {product.vendor_code}\n"
-                    f"💰 Цена: {product.price} руб.\n"
-                    f"🏭 Производитель: {product.vendor}\n"
-                    f"📦 Наличие: {product.availability}\n\n"
-                )
-                
-                if product.description:
-                    product_info += f"📝 <b>Описание:</b>\n{product.description[:300]}{'...' if len(product.description) > 300 else ''}\n\n"
+                product_info = make_product_card(product)
                 
                 # Отправляем фото с описанием товара
                 return await message.answer_photo(
@@ -330,7 +292,7 @@ async def view_product_handler(callback: CallbackQuery):
     product_id = str(callback.data).split("_")[2]
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             stmt = select(Product).where(Product.id == product_id)
             product = session.scalars(stmt).first()
             
@@ -347,22 +309,7 @@ async def view_product_handler(callback: CallbackQuery):
             is_favorite = favorite is not None
             
             # Формируем подробное описание товара
-            product_info = (
-                f"<b>{product.name}</b>\n\n"
-                f"📋 <b>Информация о товаре:</b>\n"
-                f"📊 Артикул: {product.vendor_code}\n"
-                f"💰 Цена: {product.price} руб.\n"
-                f"🏭 Производитель: {product.vendor}\n"
-                f"📦 Наличие: {product.availability}\n\n"
-            )
-            
-            if product.description:
-                product_info += f"📝 <b>Описание:</b>\n{product.description[:300]}{'...' if len(product.description) > 300 else ''}\n\n"
-            
-            product_info += f"⚙️ Модель: {product.model}\n"
-            
-            if product.is_bestseller:
-                product_info += "🔥 <b>ХИТ ПРОДАЖ!</b>\n\n"
+            product_info = make_product_card(product)
             
             # Отправляем фото с описанием товара
             return await callback.message.answer_photo(
@@ -378,47 +325,6 @@ async def view_product_handler(callback: CallbackQuery):
             "Произошла ошибка при просмотре товара", 
             reply_markup=main_kb()
         )
-        
-# MARK: add_fav_
-        
-@dp.callback_query(F.data.startswith("add_fav_"))
-async def add_product_to_favorites(callback: CallbackQuery):
-    
-    await callback.answer('')
-    try:
-        with Session(engine) as session:
-            fav = Favorite(
-                user_id=callback.from_user.id,
-                product_id=str(callback.data).split("_")[2]
-            )
-            session.add(fav)
-            session.commit()
-        
-        return await callback.answer("Товар успешно добавлен!", reply_markup=main_kb())
-    except Exception as e:
-        logger.error(f"Ошибка при добавлении товара в избранное: {e}")
-        return await callback.answer("Ошибка при добавлении товара в избранное!")
-
-# MARK: remove_fav_
-
-@dp.callback_query(F.data.startswith("remove_fav_"))
-async def add_product_to_favorites(callback: CallbackQuery):
-    
-    await callback.answer('')
-    try:
-        with Session(engine) as session:
-            fav = session.query(Favorite).filter(
-                Favorite.user_id == callback.from_user.id,
-                Favorite.product_id == str(callback.data).split("_")[2]
-            ).first()
-            if fav:
-                session.delete(fav)
-                session.commit()
-        
-        return callback.message.answer("Товар успешно добавлен!", reply_markup=main_kb())
-    except Exception as e:
-        logger.error(f"Ошибка при добавлении товара в избранное: {e}")
-        return callback.message.answer("Ошибка при добавлении товара в избранное!")
 
 # MARK: favorites
 
@@ -428,7 +334,7 @@ async def favorites_list(callback: CallbackQuery):
     user_id: int = callback.from_user.id
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             stmt = select(Product, Favorite).join(
                 Favorite, Favorite.product_id == Product.id
             ).where(Favorite.user_id == user_id)
@@ -443,14 +349,36 @@ async def favorites_list(callback: CallbackQuery):
                 )
                 return
             
-            message = (
+            answer_message = (
                 "⭐ <b>Ваши избранные товары</b> ⭐\n\n"
                 "Вы можете просмотреть детали товара или добавить его в корзину.\n\n"
             )
+            
+            for a in enumerate(results, 1):
+                print(a)
+            
+            kb = InlineKeyboardBuilder()
 
-            await callback.message.answer(
-                message,
-                reply_markup=favorite_kb(results),
+            for i, (product, favorite) in enumerate(results, 1):
+                answer_message += (
+                    f"{i}. <b>{product.name}</b>\n"
+                    f"   Артикул: {product.vendor_code}\n"
+                    f"   Цена: {product.price} руб.\n\n"
+                )
+                
+                # Добавляем кнопку для просмотра товара
+                kb.button(
+                    text=f"👁 Товар #{i}", 
+                    callback_data=f"view_product_{product.id}"
+                )
+            
+            kb.button(text="🏠 Главное меню", callback_data="main_page")
+        
+            kb.adjust(1)
+                            
+            return await callback.message.answer(
+                answer_message,
+                reply_markup=kb.as_markup(),
                 parse_mode="HTML"
             )
             
@@ -460,7 +388,91 @@ async def favorites_list(callback: CallbackQuery):
             "😔 Извините, произошла ошибка при получении избранных товаров. Пожалуйста, попробуйте позже.",
             reply_markup=main_kb()
         )
+        
+# MARK: add_fav_
+        
+@dp.callback_query(F.data.startswith("add_fav_"))
+async def add_product_to_favorites(callback: CallbackQuery):
+    product_id = str(callback.data).split("_")[2]
+    
+    try:
+        with Session() as session:
+            # Проверяем, не добавлен ли уже товар в избранное
+            existing = session.query(Favorite).filter(
+                Favorite.user_id == callback.from_user.id,
+                Favorite.product_id == product_id
+            ).first()
+            
+            if not existing:
+                # Добавляем в избранное
+                fav = Favorite(
+                    user_id=callback.from_user.id,
+                    product_id=product_id
+                )
+                session.add(fav)
+                session.commit()
+                
+                # Получаем информацию о товаре для обновления сообщения
+                stmt = select(Product).where(Product.id == product_id)
+                product = session.scalars(stmt).first()
+                
+                if product:
 
+                    product_info = make_product_card(product)
+                    
+                    # Обновляем сообщение с новой клавиатурой, где товар уже в избранном
+                    await callback.message.edit_caption(
+                        caption=product_info,
+                        reply_markup=product_kb(product.id, is_fav=True),
+                        parse_mode="HTML"
+                    )
+                    
+                await callback.answer("✅ Товар добавлен в избранное!")
+            else:
+                await callback.answer("❗ Товар уже в избранном")
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении товара в избранное: {e}")
+        await callback.answer("❌ Ошибка при добавлении товара в избранное")
+
+# MARK: remove_fav_
+
+@dp.callback_query(F.data.startswith("remove_fav_"))
+async def remove_from_favorites(callback: CallbackQuery):
+    product_id = str(callback.data).split("_")[2]
+    
+    try:
+        with Session() as session:
+            # Ищем запись в избранном
+            fav = session.query(Favorite).filter(
+                Favorite.user_id == callback.from_user.id,
+                Favorite.product_id == product_id
+            ).first()
+            
+            if fav:
+                # Удаляем из избранного
+                session.delete(fav)
+                session.commit()
+                
+                # Получаем информацию о товаре для обновления сообщения
+                stmt = select(Product).where(Product.id == product_id)
+                product = session.scalars(stmt).first()
+                
+                if product:
+                    product_info = make_product_card(product)
+                    
+                    # Обновляем сообщение с новой клавиатурой, где товар уже не в избранном
+                    await callback.message.edit_caption(
+                        caption=product_info,
+                        reply_markup=product_kb(product.id, is_fav=False),
+                        parse_mode="HTML"
+                    )
+                    
+                await callback.answer("✅ Товар удален из избранного")
+            else:
+                await callback.answer("❗ Товар не был в избранном")
+    except Exception as e:
+        logger.error(f"Ошибка при удалении товара из избранного: {e}")
+        await callback.answer("❌ Ошибка при удалении из избранного")
 # MARK: profile
 
 @dp.callback_query(F.data == 'profile')
@@ -469,7 +481,7 @@ async def profile_page(callback: CallbackQuery):
     logger.info(f"Parsing user {callback.from_user.id} profile page")
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             # Получаем информацию о пользователе
             stmt = select(User).where(User.telegram_id == callback.from_user.id)
             user = session.scalars(stmt).first()
@@ -562,7 +574,7 @@ async def edit_address_handler(callback: CallbackQuery, state: FSMContext):
 @dp.message(ProfileForm.name)
 async def process_name(message: Message, state: FSMContext):
     try:
-        with Session(engine) as session:
+        with Session() as session:
             user = session.query(User).filter(User.telegram_id == message.from_user.id).first()
             if user:
                 user.name = message.text
@@ -597,7 +609,7 @@ async def process_phone(message: Message, state: FSMContext):
         )
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             user = session.query(User).filter(User.telegram_id == message.from_user.id).first()
             if user:
                 user.phone_number = phone
@@ -624,7 +636,7 @@ async def cart_page(callback: CallbackQuery):
     user_id: int = callback.from_user.id
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             stmt = select(Product).join(CartItem).where(CartItem.user_id == user_id)
             products = session.scalars(stmt).all()
             
@@ -642,6 +654,7 @@ async def cart_page(callback: CallbackQuery):
         logger.error(f"Ошибка при получении избранных товаров: {e}")
         await callback.message.answer("Ошибка при получении избранных товаров")
 
+
 # MARK: orders
 
 @dp.callback_query(F.data == 'orders')
@@ -650,7 +663,7 @@ async def orders_list(callback: CallbackQuery):
     user_id: int = callback.from_user.id
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             stmt = select(Orders, Product).join(
                 Product, Orders.product_id == Product.id
             ).where(Orders.user_id == user_id).order_by(Orders.created_date.desc())
@@ -721,7 +734,7 @@ async def order_details_handler(callback: CallbackQuery):
     order_id = str(callback.data).split("_")[2]
     
     try:
-        with Session(engine) as session:
+        with Session() as session:
             # Получаем детальную информацию о заказе
             stmt = select(Orders, Product, User).join(
                 Product, Orders.product_id == Product.id
@@ -832,13 +845,16 @@ async def help_page(callback: CallbackQuery):
         parse_mode="HTML",
         reply_markup=help_kb(callback.from_user.id)
     )
+    
+# MARK: main
+
 async def main() -> None:
     create_tables()
     bot = Bot(token=settings.BOT_TOKEN)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='mdm.log', level=logging.INFO)
+    logging.basicConfig(filename='mdm.log', level=logging.INFO, encoding='utf-8')
     logger.info('Started')
     tprint("MDMBOT")
     asyncio.run(main())

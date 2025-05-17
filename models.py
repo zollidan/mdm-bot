@@ -64,8 +64,8 @@ class User(Base):
     __tablename__ = 'users'
     
     telegram_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    username: Mapped[str] = mapped_column(String(100))
-    name: Mapped[str] = mapped_column(String(100))
+    username: Mapped[str] = mapped_column(String(), nullable=True)
+    name: Mapped[str] = mapped_column(String())
     phone_number: Mapped[str] = mapped_column(String())
     address: Mapped[str] = mapped_column(String())
     

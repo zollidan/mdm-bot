@@ -82,30 +82,45 @@ def product_kb(product_id: int, is_fav: bool = False) -> InlineKeyboardMarkup:
     
     return kb.as_markup()
 
-def favorite_kb(results) -> InlineKeyboardMarkup:
+def favorite_kb(results):
+    """
+    Создает клавиатуру для страницы избранных товаров.
+    
+    Args:
+        results: Список кортежей (product, favorite)
+    
+    Returns:
+        Клавиатура для страницы избранных товаров
+    """
     kb = InlineKeyboardBuilder()
-    # Добавляем товары в сообщение и кнопки для каждого товара
+    
+    # Группируем кнопки по товарам для удобства
     for i, (product, favorite) in enumerate(results, 1):
-        # Добавляем информацию о товаре в сообщение
-        message += (
-            f"<b>{i}. {product.name}</b>\n"
-            f"📊 Артикул: {product.vendor_code}\n"
-            f"💰 Цена: {product.price} руб.\n"
-            f"📅 Добавлен: {favorite.created_date.strftime('%d.%m.%Y')}\n\n"
+        # Добавляем номер товара для удобства
+        kb.button(
+            text=f"{i}. {product.name[:20]}{('...' if len(product.name) > 20 else '')}", 
+            callback_data=f"view_product_{product.id}"
         )
         
-        # Кнопки для каждого товара
-        kb.button(text=f"📋 Карточка #{i}", callback_data=f"view_product_{product.id}")
-        kb.button(text=f"🛒 В корзину #{i}", callback_data=f"add_cart_{product.id}")
-        kb.button(text=f"❌ Удалить #{i}", callback_data=f"remove_fav_{product.id}")
+        # Добавляем кнопки действий
+        row = [
+            {"text": "👁 Просмотр", "callback_data": f"view_product_{product.id}"},
+            {"text": "🛒 В корзину", "callback_data": f"add_cart_{product.id}"},
+            {"text": "❌ Удалить", "callback_data": f"remove_fav_{product.id}"}
+        ]
+        
+        # Добавляем кнопки для товара
+        for btn in row:
+            kb.button(text=btn["text"], callback_data=btn["callback_data"])
     
-    # Добавляем кнопки управления внизу
-    kb.button(text="🔄 Обновить список", callback_data="favorites")
-    kb.button(text="🛒 В корзину все", callback_data="add_all_to_cart")
     kb.button(text="🏠 Главное меню", callback_data="main_page")
     
-    # Настраиваем расположение кнопок (3 кнопки для каждого товара в ряд, затем 3 кнопки управления)
-    kb.adjust(3)
+    # Настраиваем расположение кнопок:
+    # Одна кнопка с названием товара в строке
+    # Затем три кнопки действий для этого товара
+    # Далее следующий товар и т.д.
+    kb.adjust(1, 3)
+    
     return kb.as_markup()
 
 def orders_kb(orders_by_date) -> InlineKeyboardMarkup:
