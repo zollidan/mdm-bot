@@ -40,7 +40,7 @@ def cart_kb(results) -> InlineKeyboardMarkup:
                 # Кнопка удаления
                 kb.button(
                     text="🗑 Удалить",
-                    callback_data=f"remove_all_cart_{cart_item.product_id}"
+                    callback_data=f"remove_item_cart_{cart_item.product_id}"
                 )
             
             # Кнопки действий с корзиной
@@ -177,13 +177,7 @@ def orders_kb(orders_by_date):
     # Сортируем даты в обратном порядке (от новых к старым)
     for date in sorted(orders_by_date.keys(), reverse=True):
         date_orders = orders_by_date[date]
-        
-        # Добавляем заголовок с датой
-        kb.button(
-            text=f"📅 {date}",
-            callback_data=f"date_header_{date.replace('.', '_')}"  # Callback для косметических целей
-        )
-        
+            
         # Добавляем кнопки для каждого заказа в этот день
         for order_info in date_orders:
             order = order_info["order"]
@@ -207,7 +201,7 @@ def profile_kb() -> InlineKeyboardMarkup:
     kb.button(text="📝 Изменить имя", callback_data="edit_name")
     kb.button(text="📞 Изменить телефон", callback_data="edit_phone")
     kb.button(text="🏠 Изменить адрес", callback_data="edit_address")
-    kb.button(text="📊 История заказов", callback_data="orders_history")
+    kb.button(text="📊 История заказов", callback_data="orders")
     kb.button(text="🔙 Назад", callback_data="main_page")
     kb.adjust(2, 2, 1)
     return kb.as_markup()

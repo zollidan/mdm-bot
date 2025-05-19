@@ -617,6 +617,30 @@ async def process_phone(message: Message, state: FSMContext):
         await message.answer("Произошла ошибка при обновлении телефона.")
     
     await state.clear()
+    
+@dp.message(ProfileForm.address)
+async def process_address(message: Message, state: FSMContext):
+    address = message.text
+    
+    try:
+        with Session() as session:
+            user = session.query(User).filter(User.telegram_id == message.from_user.id).first()
+            if user:
+                user.address = address
+                session.commit()
+                await message.answer(
+                    "✅ Адрес доставки успешно обновлен!",
+                    reply_markup=InlineKeyboardBuilder().button(
+                        text="Вернуться в профиль", callback_data="profile"
+                    ).as_markup()
+                )
+            else:
+                await message.answer("Пользователь не найден.")
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении адреса: {e}")
+        await message.answer("Произошла ошибка при обновлении адреса.")
+    
+    await state.clear()
 
 # MARK: cart
 
@@ -744,6 +768,13 @@ async def remove_product_from_cart(callback: CallbackQuery):
     except Exception as e:
         logger.error(f"Ошибка при удалении товара из корзины: {e}")
         await callback.answer("❌ Ошибка при удалении товара из корзины")
+
+# MARK: remove item cart 
+
+# @dp.callback_query(F.data.startswith("remove_item_cart_"))
+# async def remove_item_from_cart(callback: CallbackQuery):
+    
+    
 
 # MARK: checkout
 
