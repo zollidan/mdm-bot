@@ -745,66 +745,103 @@ async def remove_product_from_cart(callback: CallbackQuery):
         logger.error(f"Ошибка при удалении товара из корзины: {e}")
         await callback.answer("❌ Ошибка при удалении товара из корзины")
 
-# MARK: F.data == "checkout"
+# MARK: checkout
+
 @dp.callback_query(F.data == "checkout")
 async def checkout_handler(callback: CallbackQuery):
     try:
         with Session() as session:
-            # Все товары в корзине пользователя
-            cart_items = session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).all()
+            # Получаем данные пользователя
+            user_data = session.query(User).filter(User.telegram_id == callback.from_user.id).first()
+            if not user_data:
+                await callback.answer("❌ Ошибка: пользователь не найден")
+                return
+            
+            # Проверяем наличие обязательных данных
+            missing_fields = []
+            if not user_data.name or user_data.name == "":
+                missing_fields.append("имя")
+            if not user_data.phone_number or user_data.phone_number == "":
+                missing_fields.append("номер телефона")
+            if not user_data.address or user_data.address == "":
+                missing_fields.append("адрес доставки")
+            
+            # Если есть отсутствующие поля, предлагаем их заполнить
+            if missing_fields:
+                missing_text = ", ".join(missing_fields)
+                await callback.message.answer(
+                    f"⚠️ <b>Для оформления заказа необходимо указать: {missing_text}</b>\n\n"
+                    f"Пожалуйста, заполните недостающие данные в вашем профиле.",
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardBuilder()
+                        .button(text="📝 Заполнить профиль", callback_data="profile")
+                        .button(text="🔙 Вернуться в корзину", callback_data="cart")
+                        .adjust(1)
+                        .as_markup()
+                )
+                return
+            
+            # Получаем содержимое корзины пользователя
+            cart_items = session.query(CartItem, Product).join(
+                Product, CartItem.product_id == Product.id
+            ).filter(CartItem.user_id == callback.from_user.id).all()
             
             if not cart_items:
                 await callback.answer("❌ Ваша корзина пуста!")
+                await callback.message.answer(
+                    "🛒 <b>Ваша корзина пуста</b>\n\n"
+                    "Добавьте товары в корзину, чтобы оформить заказ.",
+                    parse_mode="HTML",
+                    reply_markup=empty_cart_kb()
+                )
                 return
-        
-            # сумма товаров в корзине
-            total_sum = 0
-            for item in cart_items:
-                total_sum += item.product.price * item.quantity
             
-            order = Orders(
-                user_id=callback.from_user.id,
-                total_sum=total_sum,
-            )
+            # Подсчитываем общую сумму и количество товаров
+            total_price = 0
+            total_items = 0
+            
+            order_summary = "🧾 <b>Проверка заказа</b>\n\n"
+            
+            # Добавляем товары в сообщение
+            order_summary += "<b>Товары в заказе:</b>\n"
+            for i, (cart_item, product) in enumerate(cart_items, 1):
+                item_total = product.price * cart_item.quantity
+                total_price += item_total
+                total_items += cart_item.quantity
                 
-            # Добавляем заказ в базу и получаем его ID
-            session.add(order)
-            session.flush()  # Чтобы получить ID заказа
-            
-            for item in cart_items:
-                order_item = OrderItems(
-                    order_id=order.id,
-                    product_id=item.product_id,
-                    quantity=item.quantity,
-                    price=item.product.price
+                order_summary += (
+                    f"{i}. {product.name}\n"
+                    f"   {product.price} руб. × {cart_item.quantity} шт. = {item_total} руб.\n"
                 )
-                session.add(order_item)
-        
-            # Очищаем корзину пользователя
-            session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).delete()
             
-            # Сохраняем все изменения
-            session.commit()
-            
-            # Отправляем сообщение об успешном оформлении заказа менеджеру
-            # send_order_message_to_manager()
-            
-            # Формируем сообщение об успешном оформлении заказа
-            order_message = (
-                f"✅ <b>Заказ #{order.id} успешно оформлен!</b>\n\n"
-                f"📦 Количество товаров: {sum(item.quantity for item in cart_items)}\n"
-                f"💰 Общая сумма: {total_sum:.2f} руб.\n\n"
-                f"Статус заказа можно отслеживать в разделе 'Мои заказы'.\n"
-                f"Благодарим за покупку! 🎉"
+            # Добавляем сводную информацию
+            order_summary += (
+                f"\n<b>Итого:</b> {total_items} товаров на сумму {total_price:.2f} руб.\n\n"
+                
+                f"<b>Информация о доставке:</b>\n"
+                f"• Получатель: <b>{user_data.name}</b>\n"
+                f"• Телефон: <b>{user_data.phone_number}</b>\n"
+                f"• Адрес: <b>{user_data.address}</b>\n\n"
+                
+                f"<b>Способ оплаты:</b> При получении\n\n"
+                
+                f"Пожалуйста, проверьте данные заказа и подтвердите его оформление."
             )
             
+            # Создаем клавиатуру для подтверждения заказа
+            kb = InlineKeyboardBuilder()
+            kb.button(text="✅ Подтвердить заказ", callback_data="checkout_final")
+            kb.button(text="✏️ Изменить данные получателя", callback_data="profile")
+            kb.button(text="🔙 Вернуться в корзину", callback_data="cart")
+            kb.button(text="❌ Отменить", callback_data="main_page")
+            kb.adjust(1)
+            
+            # Отправляем форму подтверждения заказа
             await callback.message.answer(
-                order_message,
+                order_summary,
                 parse_mode="HTML",
-                reply_markup=main_kb()
-                )
-                
-            await callback.answer("✅ Заказ успешно оформлен!")
+                reply_markup=kb.as_markup()
+            )
             
     except Exception as e:
         logger.error(f"Ошибка при оформлении заказа: {e}")
@@ -814,6 +851,107 @@ async def checkout_handler(callback: CallbackQuery):
             reply_markup=main_kb()
         )
 
+@dp.callback_query(F.data == "checkout_final")
+async def checkout_handler_final(callback: CallbackQuery):
+    try:
+        with Session() as session:
+            # Проверяем данные пользователя еще раз
+            user = session.query(User).filter(User.telegram_id == callback.from_user.id).first()
+            if not user or not user.name or not user.phone_number or not user.address:
+                await callback.answer("❌ Необходимо заполнить данные получателя!")
+                return
+            
+            # Все товары в корзине пользователя
+            cart_items = session.query(CartItem).filter(
+                CartItem.user_id == callback.from_user.id
+            ).all()
+            
+            if not cart_items:
+                await callback.answer("❌ Ваша корзина пуста!")
+                return
+            
+            # Подсчитываем сумму заказа
+            total_sum = 0
+            for item in cart_items:
+                product = session.query(Product).filter(Product.id == item.product_id).first()
+                if product:
+                    total_sum += product.price * item.quantity
+            
+            # Создаем новый заказ
+            order = Orders(
+                user_id=callback.from_user.id,
+                total_sum=total_sum,
+                status="processing",  # Устанавливаем начальный статус
+                delivery_method="Стандартная доставка",  # Можно добавить выбор способа доставки
+                payment_method="Оплата при получении"  # Можно добавить выбор способа оплаты
+            )
+            
+            # Добавляем заказ в базу и получаем его ID
+            session.add(order)
+            session.flush()  # Чтобы получить ID заказа
+            
+            # Создаем записи OrderItems для каждого товара в заказе
+            for item in cart_items:
+                product = session.query(Product).filter(Product.id == item.product_id).first()
+                if product:
+                    order_item = OrderItems(
+                        order_id=order.id,
+                        product_id=item.product_id,
+                        quantity=item.quantity,
+                        price=product.price  # Сохраняем текущую цену товара
+                    )
+                    session.add(order_item)
+            
+            # Очищаем корзину пользователя
+            session.query(CartItem).filter(
+                CartItem.user_id == callback.from_user.id
+            ).delete()
+            
+            # Сохраняем все изменения
+            session.commit()
+            
+            # Отправляем сообщение об успешном оформлении заказа
+            order_message = (
+                f"✅ <b>Заказ #{order.id} успешно оформлен!</b>\n\n"
+                f"📦 Количество товаров: {sum(item.quantity for item in cart_items)}\n"
+                f"💰 Общая сумма: {total_sum:.2f} руб.\n\n"
+                
+                f"<b>Информация о получателе:</b>\n"
+                f"• Имя: {user.name}\n"
+                f"• Телефон: {user.phone_number}\n"
+                f"• Адрес: {user.address}\n\n"
+                
+                f"<b>Дальнейшие действия:</b>\n"
+                f"• Наш менеджер свяжется с вами для подтверждения заказа\n"
+                f"• Статус заказа можно отслеживать в разделе 'Мои заказы'\n\n"
+                
+                f"Благодарим за покупку в нашем магазине! 🎉"
+            )
+            
+            # Отправляем красивое подтверждение заказа
+            kb = InlineKeyboardBuilder()
+            kb.button(text="📦 Мои заказы", callback_data="orders")
+            kb.button(text="🏠 Главное меню", callback_data="main_page")
+            kb.adjust(1, 2)
+            
+            await callback.message.answer(
+                order_message,
+                parse_mode="HTML",
+                reply_markup=kb.as_markup()
+            )
+            
+            # Отправляем уведомление о новом заказе администратору (если нужно)
+            # await bot.send_message(admin_id, f"Новый заказ #{order.id} от {user.name}!")
+            
+            await callback.answer("✅ Заказ успешно оформлен!")
+            
+    except Exception as e:
+        logger.error(f"Ошибка при оформлении заказа: {e}")
+        await callback.answer("❌ Произошла ошибка при оформлении заказа")
+        await callback.message.answer(
+            "😔 Извините, произошла ошибка при оформлении заказа. Пожалуйста, попробуйте позже.",
+            reply_markup=main_kb()
+        )
 
 # MARK: orders
 # Переписать страницу заказов, плюс добавить эмодзи

@@ -196,7 +196,6 @@ def orders_kb(orders_by_date):
     
     # Добавляем кнопки навигации
     kb.button(text="📱 Связаться с менеджером", callback_data="contact_manager")
-    kb.button(text="🔄 Обновить", callback_data="orders")
     kb.button(text="🏠 Главное меню", callback_data="main_page")
     
     # Размещаем по одной кнопке в строке
