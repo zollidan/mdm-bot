@@ -1,22 +1,54 @@
 import asyncio
 import datetime
 import logging
-import os
-from typing import List, Optional
 from aiogram import F, Bot, Dispatcher
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from art import tprint
 
-from models import *
+from models import Favorite, OrderItems, User, Product, CartItem, Orders, Reviews
 from database import *
 from kbs import *
 from config import settings
 from utils import *
+
+"""
+✅ F.data == "main_page" - Обработчик главной страницы
+✅ F.data == "search" - Обработчик поиска
+✅ F.data == "search_by_name" - Обработчик поиска по названию
+✅ F.data.startswith("view_product_") - Просмотр товара
+✅ F.data == "favorites" - Страница избранных товаров
+✅ F.data.startswith("add_fav_") - Добавление товара в избранное
+✅ F.data.startswith("remove_fav_") - Удаление из избранного
+✅ F.data == "profile" - Страница профиля
+✅ F.data == "edit_name" - Изменение имени
+✅ F.data == "edit_phone" - Изменение телефона
+✅ F.data == "edit_address" - Изменение адреса
+✅ F.data == "cart" - Страница корзины
+✅ F.data.startswith("add_cart_") - Добавление товара в корзину
+✅ F.data.startswith("remove_cart_") - Удаление из корзины
+✅❌ F.data == "orders" - Список заказов
+✅ F.data.startswith("order_details_") - Детали заказа
+✅ F.data == "help" - Страница помощи
+❌ F.data == "edit_profile" - Редактирование профиля (в меню профиля)
+❌ F.data.startswith("decrease_qty_") - Уменьшение количества товара в корзине
+❌ F.data.startswith("increase_qty_") - Увеличение количества товара в корзине
+❌ F.data.startswith("cart_qty_info_") - Информация о количестве товара
+❌ F.data == "clear_cart" - Очистка корзины
+✅ F.data == "checkout" - Оформление заказа
+❌ F.data.startswith("cancel_order_") - Отмена заказа
+❌ F.data.startswith("repeat_order_") - Повторение заказа
+❌ F.data == "contact_manager" - Связь с менеджером
+❌ F.data.startswith("specs_") - Характеристики товара
+❌ F.data.startswith("reviews_") - Отзывы о товаре
+❌ F.data.startswith("write_review_") - Написание отзыва
+❌ F.data == "track_delivery" - Отслеживание доставки
+❌ F.data.startswith("remove_all_cart_") - Полное удаление товара из корзины
+"""
+
 
 logger = logging.getLogger(__name__)
 dp = Dispatcher()
@@ -105,7 +137,7 @@ async def main_page(callback: CallbackQuery):
             
     except Exception as e:
         logger.error(f"Ошибка при загрузке главной страницы: {e}")
-        return await callback.message.edit_text(
+        return await callback.message.answer(
             "Добро пожаловать в MDM Store!\n\nВыберите действие на клавиатуре ниже 👇", 
             reply_markup=main_kb()
         )
@@ -132,6 +164,7 @@ async def search_handler(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(SearchForm.vendor_code_search)
     await callback.answer("")
         
+# MARK: search_by_name
 
 # Обработчик для поиска по названию
 @dp.callback_query(F.data == "search_by_name")
@@ -146,6 +179,7 @@ async def search_by_name_handler(callback: CallbackQuery, state: FSMContext) -> 
     
     await callback.answer("")
         
+# MARK: search_by_code
 # Обработчик для поиска по артикулу
 @dp.message(SearchForm.vendor_code_search)
 async def process_vendor_code_search(message: Message, state: FSMContext) -> None:
@@ -171,14 +205,6 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
                     reply_markup=product_not_found_kb()
                 )
             
-            # Проверяем, добавлен ли товар в избранное
-            fav_stmt = select(Favorite).where(
-                Favorite.user_id == user_id,
-                Favorite.product_id == product.id
-            )
-            favorite = session.scalars(fav_stmt).first()
-            is_favorite = favorite is not None
-            
             # Формируем подробное описание товара
             product_info = make_product_card(product)
             
@@ -186,7 +212,7 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
             return await message.answer_photo(
                 photo=product.image,
                 caption=product_info,
-                reply_markup=product_kb(product.id, is_fav=is_favorite),
+                reply_markup=product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
                 parse_mode="HTML"
             )
             
@@ -196,7 +222,8 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
                 "😔 Произошла ошибка при поиске товара. Пожалуйста, попробуйте снова позже.",
                 reply_markup=main_kb()
             )
-
+        
+# MARK: search_by_name
 # Обработчик для поиска по названию
 @dp.message(SearchForm.name_search)
 async def process_name_search(message: Message, state: FSMContext) -> None:
@@ -228,14 +255,6 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
             if len(products) == 1:
                 product = products[0]
                 
-                # Проверяем избранное
-                fav_stmt = select(Favorite).where(
-                    Favorite.user_id == user_id,
-                    Favorite.product_id == product.id
-                )
-                favorite = session.scalars(fav_stmt).first()
-                is_favorite = favorite is not None
-                
                 # Формируем подробное описание товара
                 product_info = make_product_card(product)
                 
@@ -243,7 +262,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
                 return await message.answer_photo(
                     photo=product.image,
                     caption=product_info,
-                    reply_markup=product_kb(product.id, is_fav=is_favorite),
+                    reply_markup=product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
                     parse_mode="HTML"
                 )
             else:
@@ -285,6 +304,8 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
                 reply_markup=main_kb()
             )
 
+# MARK: view_product_
+
 # Обработчик для просмотра товара из результатов поиска
 @dp.callback_query(F.data.startswith("view_product_"))
 async def view_product_handler(callback: CallbackQuery):
@@ -299,15 +320,7 @@ async def view_product_handler(callback: CallbackQuery):
             if not product:
                 await callback.message.answer("Товар не найден", reply_markup=main_kb())
                 return
-            
-            # Проверяем, добавлен ли товар в избранное
-            fav_stmt = select(Favorite).where(
-                Favorite.user_id == callback.from_user.id,
-                Favorite.product_id == product.id
-            )
-            favorite = session.scalars(fav_stmt).first()
-            is_favorite = favorite is not None
-            
+        
             # Формируем подробное описание товара
             product_info = make_product_card(product)
             
@@ -315,7 +328,7 @@ async def view_product_handler(callback: CallbackQuery):
             return await callback.message.answer_photo(
                 photo=product.image,
                 caption=product_info,
-                reply_markup=product_kb(product.id, is_fav=is_favorite),
+                reply_markup=product_kb(product.id, user_id=callback.from_user.id, session=session),
                 parse_mode="HTML"
             )
             
@@ -390,7 +403,7 @@ async def favorites_list(callback: CallbackQuery):
         )
         
 # MARK: add_fav_
-        
+
 @dp.callback_query(F.data.startswith("add_fav_"))
 async def add_product_to_favorites(callback: CallbackQuery):
     product_id = str(callback.data).split("_")[2]
@@ -402,7 +415,7 @@ async def add_product_to_favorites(callback: CallbackQuery):
                 Favorite.user_id == callback.from_user.id,
                 Favorite.product_id == product_id
             ).first()
-            
+                        
             if not existing:
                 # Добавляем в избранное
                 fav = Favorite(
@@ -413,19 +426,7 @@ async def add_product_to_favorites(callback: CallbackQuery):
                 session.commit()
                 
                 # Получаем информацию о товаре для обновления сообщения
-                stmt = select(Product).where(Product.id == product_id)
-                product = session.scalars(stmt).first()
-                
-                if product:
-
-                    product_info = make_product_card(product)
-                    
-                    # Обновляем сообщение с новой клавиатурой, где товар уже в избранном
-                    await callback.message.edit_caption(
-                        caption=product_info,
-                        reply_markup=product_kb(product.id, is_fav=True),
-                        parse_mode="HTML"
-                    )
+                await update_product_card(callback=callback, product_id=product_id, session=session)
                     
                 await callback.answer("✅ Товар добавлен в избранное!")
             else:
@@ -449,23 +450,11 @@ async def remove_from_favorites(callback: CallbackQuery):
             ).first()
             
             if fav:
-                # Удаляем из избранного
                 session.delete(fav)
                 session.commit()
                 
                 # Получаем информацию о товаре для обновления сообщения
-                stmt = select(Product).where(Product.id == product_id)
-                product = session.scalars(stmt).first()
-                
-                if product:
-                    product_info = make_product_card(product)
-                    
-                    # Обновляем сообщение с новой клавиатурой, где товар уже не в избранном
-                    await callback.message.edit_caption(
-                        caption=product_info,
-                        reply_markup=product_kb(product.id, is_fav=False),
-                        parse_mode="HTML"
-                    )
+                await update_product_card(callback=callback, product_id=product_id, session=session)
                     
                 await callback.answer("✅ Товар удален из избранного")
             else:
@@ -473,6 +462,7 @@ async def remove_from_favorites(callback: CallbackQuery):
     except Exception as e:
         logger.error(f"Ошибка при удалении товара из избранного: {e}")
         await callback.answer("❌ Ошибка при удалении из избранного")
+        
 # MARK: profile
 
 @dp.callback_query(F.data == 'profile')
@@ -637,26 +627,196 @@ async def cart_page(callback: CallbackQuery):
     
     try:
         with Session() as session:
-            stmt = select(Product).join(CartItem).where(CartItem.user_id == user_id)
-            products = session.scalars(stmt).all()
+            # Получаем товары в корзине вместе с их количеством
+            stmt = select(Product, CartItem).join(
+                CartItem, CartItem.product_id == Product.id
+            ).where(CartItem.user_id == user_id)
             
-            if not products:
-                await callback.message.answer("Ваша корзина пуста", reply_markup=main_kb())
-                return
+            results = session.execute(stmt).all()
             
-            message = "Товары в вашей корзине:\n\n"
-            for product in products:
-                message += f"🔹 {product.name} - {product.price} руб.\n"
+            if not results:
+                return await callback.message.answer(
+                    "🛒 <b>Ваша корзина пуста</b>\n\n"
+                    "Добавьте товары в корзину, чтобы оформить заказ.\n"
+                    "Воспользуйтесь поиском, чтобы найти интересующие вас товары!",
+                    parse_mode="HTML",
+                    reply_markup=empty_cart_kb()
+                )
             
-            await callback.message.answer(message)
+            # Подсчитываем общую сумму и количество товаров
+            total_price = 0
+            total_items = 0
+            
+            cart_message = "🛒 <b>Корзина</b>\n\n"
+            
+            # Формируем список товаров
+            for i, (product, cart_item) in enumerate(results, 1):
+                item_total = product.price * cart_item.quantity
+                total_price += item_total
+                total_items += cart_item.quantity
+                
+                cart_message += (
+                    f"{i}. <b>{product.name}</b>\n"
+                    f"   Артикул: {product.vendor_code}\n"
+                    f"   Цена: {product.price} руб. × {cart_item.quantity} шт. = {item_total} руб.\n\n"
+                )
+            
+            # Добавляем итоговую информацию
+            cart_message += (
+                f"📊 <b>Итого:</b>\n"
+                f"• Товаров: {total_items} шт.\n"
+                f"• Сумма: {total_price:.2f} руб.\n\n"
+                f"Для управления количеством или удаления товара используйте кнопки ниже."
+            )
+            
+            return await callback.message.answer(
+                cart_message,
+                reply_markup=cart_kb(results=results),
+                parse_mode="HTML"
+            )
             
     except Exception as e:
-        logger.error(f"Ошибка при получении избранных товаров: {e}")
-        await callback.message.answer("Ошибка при получении избранных товаров")
+        logger.error(f"Ошибка при получении корзины: {e}")
+        await callback.message.answer(
+            "😔 Извините, произошла ошибка при загрузке корзины. Пожалуйста, попробуйте позже.",
+            reply_markup=main_kb()
+        )
+
+# MARK: add_cart_
+
+@dp.callback_query(F.data.startswith("add_cart_"))
+async def add_product_to_cart(callback: CallbackQuery):
+    product_id = str(callback.data).split("_")[2]
+    
+    try:
+        with Session() as session:
+            # Проверяем, есть ли уже этот товар в корзине
+            existing = session.query(CartItem).filter(
+                CartItem.user_id == callback.from_user.id,
+                CartItem.product_id == product_id
+            ).first()
+            
+            if not existing:
+                # Добавляем товар в корзину
+                cart_item = CartItem(
+                    user_id=callback.from_user.id,
+                    product_id=product_id,
+                    quantity=1
+                )
+                session.add(cart_item)
+                session.commit()
+                
+                # Получаем информацию о товаре для обновления сообщения
+                await update_product_card(callback=callback, product_id=product_id, session=session)
+                
+                await callback.answer("✅ Товар добавлен в корзину!")
+            else: 
+                pass
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении товара в корзину: {e}")
+        await callback.answer("❌ Ошибка при добавлении товара в корзину")
+
+# MARK: remove_cart_
+
+@dp.callback_query(F.data.startswith("remove_cart_"))
+async def remove_product_from_cart(callback: CallbackQuery):
+    product_id = str(callback.data).split("_")[2]
+    
+    try:
+        with Session() as session:
+            # Ищем товар в корзине
+            cart_item = session.query(CartItem).filter(
+                CartItem.user_id == callback.from_user.id,
+                CartItem.product_id == product_id
+            ).first()
+            
+            if cart_item:
+
+                session.delete(cart_item)
+                session.commit()
+        
+                # Получаем информацию о товаре для обновления сообщения
+                await update_product_card(callback=callback, product_id=product_id, session=session)
+                
+                await callback.answer("✅ Товар удален из корзины")
+            else:
+                await callback.answer("❗ Товара нет в корзине")
+    except Exception as e:
+        logger.error(f"Ошибка при удалении товара из корзины: {e}")
+        await callback.answer("❌ Ошибка при удалении товара из корзины")
+
+# MARK: F.data == "checkout"
+@dp.callback_query(F.data == "checkout")
+async def checkout_handler(callback: CallbackQuery):
+    try:
+        with Session() as session:
+            # Все товары в корзине пользователя
+            cart_items = session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).all()
+            
+            if not cart_items:
+                await callback.answer("❌ Ваша корзина пуста!")
+                return
+        
+            # сумма товаров в корзине
+            total_sum = 0
+            for item in cart_items:
+                total_sum += item.product.price * item.quantity
+            
+            order = Orders(
+                user_id=callback.from_user.id,
+                total_sum=total_sum,
+            )
+                
+            # Добавляем заказ в базу и получаем его ID
+            session.add(order)
+            session.flush()  # Чтобы получить ID заказа
+            
+            for item in cart_items:
+                order_item = OrderItems(
+                    order_id=order.id,
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    price=item.product.price
+                )
+                session.add(order_item)
+        
+            # Очищаем корзину пользователя
+            session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).delete()
+            
+            # Сохраняем все изменения
+            session.commit()
+            
+            # Отправляем сообщение об успешном оформлении заказа менеджеру
+            # send_order_message_to_manager()
+            
+            # Формируем сообщение об успешном оформлении заказа
+            order_message = (
+                f"✅ <b>Заказ #{order.id} успешно оформлен!</b>\n\n"
+                f"📦 Количество товаров: {sum(item.quantity for item in cart_items)}\n"
+                f"💰 Общая сумма: {total_sum:.2f} руб.\n\n"
+                f"Статус заказа можно отслеживать в разделе 'Мои заказы'.\n"
+                f"Благодарим за покупку! 🎉"
+            )
+            
+            await callback.message.answer(
+                order_message,
+                parse_mode="HTML",
+                reply_markup=main_kb()
+                )
+                
+            await callback.answer("✅ Заказ успешно оформлен!")
+            
+    except Exception as e:
+        logger.error(f"Ошибка при оформлении заказа: {e}")
+        await callback.answer("❌ Произошла ошибка при оформлении заказа")
+        await callback.message.answer(
+            "😔 Извините, произошла ошибка при оформлении заказа. Пожалуйста, попробуйте позже.",
+            reply_markup=main_kb()
+        )
 
 
 # MARK: orders
-
+# Переписать страницу заказов, плюс добавить эмодзи
 @dp.callback_query(F.data == 'orders')
 async def orders_list(callback: CallbackQuery):
     await callback.answer('')
@@ -664,13 +824,12 @@ async def orders_list(callback: CallbackQuery):
     
     try:
         with Session() as session:
-            stmt = select(Orders, Product).join(
-                Product, Orders.product_id == Product.id
-            ).where(Orders.user_id == user_id).order_by(Orders.created_date.desc())
+            # Получаем все заказы пользователя
+            orders = session.query(Orders).filter(
+                Orders.user_id == user_id
+            ).order_by(Orders.order_date.desc()).all()
             
-            results = session.execute(stmt).all()
-            
-            if not results:
+            if not orders:
                 return await callback.message.answer(
                     "📭 <b>Список заказов пуст</b>\n\n"
                     "У вас пока нет оформленных заказов.\n"
@@ -679,27 +838,63 @@ async def orders_list(callback: CallbackQuery):
                     reply_markup=main_kb()
                 )
             
-
+            # Группируем заказы по дате
             orders_by_date = {}
             total_spent = 0
             
-            for order, product in results:
+            for order in orders:
                 # Форматируем дату для группировки
-                order_date = order.created_date.strftime('%d.%m.%Y')
+                order_date = order.order_date.strftime('%d.%m.%Y')
+                
                 if order_date not in orders_by_date:
                     orders_by_date[order_date] = []
                 
-                orders_by_date[order_date].append((order, product))
-                total_spent += order.summ
+                # Получаем информацию о товарах в заказе
+                order_items = session.query(OrderItems, Product).join(
+                    Product, OrderItems.product_id == Product.id
+                ).filter(OrderItems.order_id == order.id).all()
+                
+                # Создаем словарь с информацией о заказе
+                order_info = {
+                    "order": order,
+                    "items": order_items,
+                    "items_count": sum(item.quantity for item, _ in order_items),
+                    "products_count": len(order_items)
+                }
+                
+                orders_by_date[order_date].append(order_info)
+                total_spent += order.total_sum
             
             # Формируем сообщение со списком заказов
             message = (
                 "📦 <b>История ваших заказов</b>\n\n"
-                f"Всего заказов: <b>{len(results)}</b>\n"
+                f"Всего заказов: <b>{len(orders)}</b>\n"
                 f"На сумму: <b>{total_spent:.2f} руб.</b>\n\n"
             )
             
-            # Отправляем сообщение с форматированием HTML
+            # Добавляем последние заказы в сообщение
+            recent_orders = orders[:3]  # Показываем только 3 последних заказа
+            
+            if recent_orders:
+                message += "<b>Последние заказы:</b>\n\n"
+                
+                for order in recent_orders:
+                    order_date = order.order_date.strftime('%d.%m.%Y %H:%M')
+                    
+                    # Получаем информацию о товарах в заказе
+                    items_count = session.query(OrderItems).filter(
+                        OrderItems.order_id == order.id
+                    ).with_entities(OrderItems.quantity).all()
+                    
+                    total_items = sum(item[0] for item in items_count)
+                    
+                    message += (
+                        f"<b>Заказ #{order.id}</b> от {order_date}\n"
+                        f"• Товаров: {total_items} шт.\n"
+                        f"• Сумма: {order.total_sum:.2f} руб.\n\n"
+                    )
+            
+            # Отправляем сообщение с форматированием HTML и клавиатурой
             return await callback.message.answer(
                 message,
                 reply_markup=orders_kb(orders_by_date),
@@ -713,21 +908,6 @@ async def orders_list(callback: CallbackQuery):
             reply_markup=main_kb()
         )
 
-# # Вспомогательная функция для определения статуса заказа
-# def get_order_status(order):
-#     # В будущем можно добавить логику определения статуса заказа
-#     # Например, на основе даты создания или специального поля в базе данных
-#     days_since_order = (datetime.datetime.now() - order.created_date).days
-    
-#     if days_since_order < 1:
-#         return "✅ Принят в обработку"
-#     elif days_since_order < 3:
-#         return "🚚 В пути"
-#     elif days_since_order < 5:
-#         return "📦 Доставлен"
-#     else:
-#         return "✓ Завершен"
-        
 @dp.callback_query(F.data.startswith("order_details_"))
 async def order_details_handler(callback: CallbackQuery):
     await callback.answer('')
@@ -735,57 +915,87 @@ async def order_details_handler(callback: CallbackQuery):
     
     try:
         with Session() as session:
-            # Получаем детальную информацию о заказе
-            stmt = select(Orders, Product, User).join(
-                Product, Orders.product_id == Product.id
-            ).join(
-                User, Orders.user_id == User.telegram_id
-            ).where(Orders.id == order_id)
+            # Получаем информацию о заказе
+            order = session.query(Orders).filter(Orders.id == order_id).first()
             
-            result = session.execute(stmt).first()
-            
-            if not result:
+            if not order:
                 return await callback.message.answer(
                     "Заказ не найден или был удален.",
                     reply_markup=main_kb()
                 )
             
-            order, product, user = result
+            # Получаем пользователя
+            user = session.query(User).filter(User.telegram_id == order.user_id).first()
+            
+            # Получаем товары в заказе
+            order_items = session.query(OrderItems, Product).join(
+                Product, OrderItems.product_id == Product.id
+            ).filter(OrderItems.order_id == order.id).all()
+            
+            if not order_items:
+                return await callback.message.answer(
+                    "Товары в заказе не найдены.",
+                    reply_markup=main_kb()
+                )
             
             # Формируем детальное сообщение о заказе
-            order_date = order.created_date.strftime('%d.%m.%Y %H:%M')
-            estimated_delivery = (order.created_date + datetime.timedelta(days=5)).strftime('%d.%m.%Y')
+            order_date = order.order_date.strftime('%d.%m.%Y %H:%M')
+            estimated_delivery = (order.order_date + datetime.timedelta(days=5)).strftime('%d.%m.%Y')
             
             message = (
-                f"🧾 <b>Заказ #{order.id}</b>\n\n"
+                f"<b>Заказ #{order.id}</b>\n\n"
                 
                 f"📋 <b>Информация о заказе:</b>\n"
                 f"• Дата заказа: {order_date}\n"
                 f"• Ожидаемая доставка: {estimated_delivery}\n\n"
                 
-                f"🛍 <b>Товар:</b>\n"
-                f"• Наименование: {product.name}\n"
-                f"• Артикул: {product.vendor_code}\n"
-                f"• Цена за ед.: {product.price:.2f} руб.\n"
-                f"• Количество: {order.quantity} шт.\n"
-                f"• Сумма заказа: {order.summ:.2f} руб.\n\n"
+                f"🛍 <b>Товары в заказе:</b>\n"
+            )
+            
+            # Добавляем информацию о каждом товаре
+            total_items = 0
+            for i, (item, product) in enumerate(order_items, 1):
+                message += (
+                    f"{i}. {product.name}\n"
+                    f"   {product.price:.2f} руб. × {item.quantity} шт. = {item.price * item.quantity:.2f} руб.\n"
+                )
+                total_items += item.quantity
+            
+            message += (
+                f"\n📊 <b>Итого:</b>\n"
+                f"• Товаров: {total_items} шт.\n"
+                f"• Сумма заказа: {order.total_sum:.2f} руб.\n\n"
                 
                 f"📦 <b>Информация о доставке:</b>\n"
-                f"• Адрес: {user.address or 'Не указан'}\n"
-                f"• Телефон: {user.phone_number or 'Не указан'}\n"
-                f"• Получатель: {user.name or 'Не указан'}\n\n"
-                
-                f"При возникновении вопросов по заказу свяжитесь с нашей службой поддержки."
+                f"• Адрес: {user.address if user and user.address else 'Не указан'}\n"
+                f"• Телефон: {user.phone_number if user and user.phone_number else 'Не указан'}\n"
+                f"• Получатель: {user.name if user and user.name else 'Не указан'}\n\n"
             )
+            
+            if order.delivery_method:
+                message += f"• Способ доставки: {order.delivery_method}\n"
+            
+            if order.payment_method:
+                message += f"• Способ оплаты: {order.payment_method}\n"
+            
+            if order.tracking_number:
+                message += f"• Трек-номер: {order.tracking_number}\n"
+            
+            message += "\nПри возникновении вопросов по заказу свяжитесь с нашей службой поддержки."
             
             # Создаем клавиатуру для действий с заказом
             kb = InlineKeyboardBuilder()
             
-            # Если заказ недавно создан, добавляем кнопку отмены
-            if (datetime.datetime.now() - order.created_date).days < 1:
+            # Если заказ в обработке, добавляем кнопку отмены
+            if order.status == "processing" or order.status == "confirmed":
                 kb.button(text="❌ Отменить заказ", callback_data=f"cancel_order_{order.id}")
             
             kb.button(text="🔄 Повторить заказ", callback_data=f"repeat_order_{order.id}")
+            
+            # Если есть трек-номер, добавляем кнопку отслеживания
+            if order.tracking_number:
+                kb.button(text="📍 Отследить заказ", callback_data=f"track_delivery_{order.tracking_number}")
+            
             kb.button(text="📱 Связаться с менеджером", callback_data="contact_manager")
             kb.button(text="🔙 К списку заказов", callback_data="orders")
             kb.button(text="🏠 Главное меню", callback_data="main_page")
@@ -793,13 +1003,24 @@ async def order_details_handler(callback: CallbackQuery):
             # Настраиваем расположение кнопок
             kb.adjust(1)
             
-            # Отправляем изображение товара с детальной информацией о заказе
-            return await callback.message.answer_photo(
-                photo=product.image,
-                caption=message,
-                reply_markup=kb.as_markup(),
-                parse_mode="HTML"
-            )
+            # Получаем первый товар для изображения
+            first_product = order_items[0][1] if order_items else None
+            
+            if first_product and first_product.image:
+                # Отправляем изображение первого товара с детальной информацией о заказе
+                return await callback.message.answer_photo(
+                    photo=first_product.image,
+                    caption=message,
+                    reply_markup=kb.as_markup(),
+                    parse_mode="HTML"
+                )
+            else:
+                # Если изображения нет, отправляем просто текст
+                return await callback.message.answer(
+                    message,
+                    reply_markup=kb.as_markup(),
+                    parse_mode="HTML"
+                )
             
     except Exception as e:
         logger.error(f"Ошибка при получении информации о заказе {order_id}: {e}")
@@ -851,6 +1072,7 @@ async def help_page(callback: CallbackQuery):
 async def main() -> None:
     create_tables()
     bot = Bot(token=settings.BOT_TOKEN)
+    
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

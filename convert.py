@@ -1,5 +1,4 @@
 import csv
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from main import Base, Product, url
@@ -81,7 +80,7 @@ def process_csv(file_path):
             
             # Сохраняем изменения в базе данных
             session.commit()
-            print(f"Импорт данных завершен успешно!")
+            print("Импорт данных завершен успешно!")
 
 if __name__ == "__main__":
     csv_path = "old_db_lite.csv"  # Путь к CSV файлу

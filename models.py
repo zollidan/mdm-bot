@@ -1,8 +1,8 @@
 import datetime
 from typing import List, Optional
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, PrimaryKeyConstraint, create_engine, select
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, PrimaryKeyConstraint
 from sqlalchemy import String
-from sqlalchemy.orm import DeclarativeBase, Session, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 # MARK: models
 
@@ -57,9 +57,38 @@ class Product(Base):
     status: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Статус товара
     
     favorites: Mapped[List["Favorite"]] = relationship(back_populates="product")
-    orders: Mapped[List["Orders"]] = relationship(back_populates="product")
     cart_items: Mapped[list["CartItem"]] = relationship(back_populates="product")
+    order_items: Mapped[list["OrderItems"]] = relationship(back_populates="product")
     
+class Orders(Base):
+    __tablename__ = 'orders'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.telegram_id')) 
+    total_sum: Mapped[float] = mapped_column(Float)  # общая сумма заказа
+    status: Mapped[str] = mapped_column(String(50), default="processing")
+    delivery_method: Mapped[str] = mapped_column(String(100), nullable=True)
+    payment_method: Mapped[str] = mapped_column(String(100), nullable=True)
+    tracking_number: Mapped[str] = mapped_column(String(100), nullable=True)
+    order_date: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now)
+    
+    # Отношения
+    user: Mapped["User"] = relationship(back_populates="orders")
+    order_items: Mapped[List["OrderItems"]] = relationship(back_populates="order")
+
+class OrderItems(Base):
+    __tablename__ = 'order_items'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(Integer, ForeignKey('orders.id'))
+    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('products.id'))
+    quantity: Mapped[int] = mapped_column(Integer)
+    price: Mapped[float] = mapped_column(Float)  # цена товара на момент заказа
+    
+    # Отношения
+    order: Mapped["Orders"] = relationship(back_populates="order_items")
+    product: Mapped["Product"] = relationship(back_populates="order_items")
+
 class User(Base):
     __tablename__ = 'users'
     
@@ -73,22 +102,6 @@ class User(Base):
     orders: Mapped[list["Orders"]] = relationship(back_populates="user")
     reviews: Mapped[list["Reviews"]] = relationship(back_populates="user")
     cart_items: Mapped[list["CartItem"]] = relationship(back_populates="user")
-    
-class Orders(Base):
-    __tablename__ = 'orders'
-    
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey('products.id'))
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.telegram_id')) 
-    quantity: Mapped[int] = mapped_column(Integer) # количество товара
-    summ: Mapped[float] = mapped_column(Float) # сумма заказа
-    status: Mapped[str] = mapped_column(String(50), default="processing")  # статус заказа
-    delivery_method: Mapped[str] = mapped_column(String(100), nullable=True)  # метод доставки
-    payment_method: Mapped[str] = mapped_column(String(100), nullable=True)  # метод оплаты
-    tracking_number: Mapped[str] = mapped_column(String(100), nullable=True)  # трекинг-номер
-    
-    product: Mapped["Product"] = relationship(back_populates="orders")
-    user: Mapped["User"] = relationship(back_populates="orders")
 
 class Reviews(Base):
     __tablename__ = 'reviews'

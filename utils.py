@@ -1,3 +1,10 @@
+from sqlalchemy import select
+
+
+from kbs import product_kb
+from models import Product
+
+
 def make_product_card(product):
     # Формируем описание товара
     product_info = (
@@ -35,3 +42,30 @@ def make_main_page_text(user, cart_count, favorites_count, orders_count):
         f"• Бесплатная доставка при заказе от 5000 руб.\n\n"
         f"Выберите действие на клавиатуре ниже 👇"
     )
+
+async def update_product_card(callback, product_id, session):
+    """
+    Обновляет карточку товара в сообщении.
+    
+    args: 
+        callback: CallbackQuery, полученный из нажатия кнопки
+        product_id: ID товара, который нужно обновить
+        session: Сессия SQLAlchemy для работы с БД
+    returns:
+        None
+    """
+    # Получаем информацию о товаре для обновления сообщения
+    stmt = select(Product).where(Product.id == product_id)
+    product = session.scalars(stmt).first()
+    
+    if product: 
+        product_info = make_product_card(product)
+        
+        # Обновляем сообщение с новой клавиатурой
+        await callback.message.edit_caption(
+            caption=product_info,
+            reply_markup=product_kb(product_id=product.id, session=session, user_id=callback.from_user.id),
+            parse_mode="HTML"
+        )
+        
+
