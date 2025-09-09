@@ -1,11 +1,9 @@
 import csv
-from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from main import Base, Product, url
+from models import Base, Product
+from database import engine
 
 # Настройка подключения к базе данных
-DATABASE_URL = url
-engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 
 def convert_to_bool(value):

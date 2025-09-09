@@ -42,6 +42,7 @@ def make_main_page_text(user, cart_count, favorites_count, orders_count):
         f"• Бесплатная доставка при заказе от 5000 руб.\n\n"
         f"Выберите действие на клавиатуре ниже 👇"
     )
+    return main_page_text
 
 async def update_product_card(callback, product_id, session):
     """

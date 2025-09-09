@@ -23,7 +23,7 @@ def search_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="📝 По названию", callback_data="search_by_name")
     kb.button(text="🔙 Назад", callback_data="main_page")
-    kb.adjust(2, 2)
+    kb.adjust(2)
     return kb.as_markup()
 
 def cart_kb(results) -> InlineKeyboardMarkup:
@@ -40,12 +40,13 @@ def cart_kb(results) -> InlineKeyboardMarkup:
                 # Кнопка удаления
                 kb.button(
                     text="🗑 Удалить",
-                    callback_data=f"remove_item_cart_{cart_item.product_id}"
+                    callback_data=f"remove_cart_{cart_item.product_id}"
                 )
             
             # Кнопки действий с корзиной
             kb.button(text="💳 Оформить заказ", callback_data="checkout")
-            kb.button(text="🧹 Очистить корзину", callback_data="clear_cart")
+            # TODO(MVP+): очистка корзины целиком
+            # kb.button(text="🧹 Очистить корзину", callback_data="clear_cart")
             kb.button(text="🏠 Главное меню", callback_data="main_page")
             
             kb.adjust(1)
@@ -103,15 +104,15 @@ def product_kb(product_id: int, session, user_id) -> InlineKeyboardMarkup:
             callback_data=f"add_fav_{product_id}"
         )
     
-    # Дополнительные действия с товаром
-    kb.button(
-        text="📋 Характеристики", 
-        callback_data=f"specs_{product_id}"
-    )
-    kb.button(
-        text="💬 Отзывы", 
-        callback_data=f"reviews_{product_id}"
-    )
+    # Дополнительные действия с товаром (появятся после MVP)
+    # kb.button(
+    #     text="📋 Характеристики", 
+    #     callback_data=f"specs_{product_id}"
+    # )
+    # kb.button(
+    #     text="💬 Отзывы", 
+    #     callback_data=f"reviews_{product_id}"
+    # )
     
     # Навигационные кнопки
     kb.button(text="🔍 К поиску", callback_data="search")
@@ -189,7 +190,8 @@ def orders_kb(orders_by_date):
             )
     
     # Добавляем кнопки навигации
-    kb.button(text="📱 Связаться с менеджером", callback_data="contact_manager")
+    # TODO(MVP+): связь с менеджером
+    # kb.button(text="📱 Связаться с менеджером", callback_data="contact_manager")
     kb.button(text="🏠 Главное меню", callback_data="main_page")
     
     # Размещаем по одной кнопке в строке
@@ -208,10 +210,11 @@ def profile_kb() -> InlineKeyboardMarkup:
 
 def help_kb(user_telegram_id):
     kb = InlineKeyboardBuilder()
-    kb.button(text="📞 Позвонить нам", callback_data="help_call")
-    kb.button(text="✉️ Написать на почту", callback_data="help_send_email")
-    kb.button(text="💬 Чат с поддержкой", callback_data="help_send_tg")
-    kb.button(text="❓ Частые вопросы", callback_data="help_faq")
+    # TODO(MVP+): интерактивная помощь и FAQ
+    # kb.button(text="📞 Позвонить нам", callback_data="help_call")
+    # kb.button(text="✉️ Написать на почту", callback_data="help_send_email")
+    # kb.button(text="💬 Чат с поддержкой", callback_data="help_send_tg")
+    # kb.button(text="❓ Частые вопросы", callback_data="help_faq")
     kb.button(text="🏠 Главное меню", callback_data="main_page")
     
     kb.adjust(1)

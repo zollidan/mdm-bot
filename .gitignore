@@ -1,7 +1,7 @@
 .env
-mdm.log
-database.db
+*.log
+*.db
 __pycache__
 .ruff_cache
 .venv
-old_db_lite.csv
+*.csv

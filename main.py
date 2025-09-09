@@ -8,6 +8,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from art import tprint
+from sqlalchemy import select
 
 from models import Favorite, OrderItems, User, Product, CartItem, Orders, Reviews
 from database import *
@@ -310,7 +311,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
 @dp.callback_query(F.data.startswith("view_product_"))
 async def view_product_handler(callback: CallbackQuery):
     await callback.answer('')
-    product_id = str(callback.data).split("_")[2]
+    product_id = int(str(callback.data).split("_")[2])
     
     try:
         with Session() as session:
@@ -406,7 +407,7 @@ async def favorites_list(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith("add_fav_"))
 async def add_product_to_favorites(callback: CallbackQuery):
-    product_id = str(callback.data).split("_")[2]
+    product_id = int(str(callback.data).split("_")[2])
     
     try:
         with Session() as session:
@@ -439,7 +440,7 @@ async def add_product_to_favorites(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith("remove_fav_"))
 async def remove_from_favorites(callback: CallbackQuery):
-    product_id = str(callback.data).split("_")[2]
+    product_id = int(str(callback.data).split("_")[2])
     
     try:
         with Session() as session:
@@ -710,7 +711,7 @@ async def cart_page(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith("add_cart_"))
 async def add_product_to_cart(callback: CallbackQuery):
-    product_id = str(callback.data).split("_")[2]
+    product_id = int(str(callback.data).split("_")[2])
     
     try:
         with Session() as session:
@@ -744,7 +745,7 @@ async def add_product_to_cart(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith("remove_cart_"))
 async def remove_product_from_cart(callback: CallbackQuery):
-    product_id = str(callback.data).split("_")[2]
+    product_id = int(str(callback.data).split("_")[2])
     
     try:
         with Session() as session:
@@ -1080,7 +1081,7 @@ async def orders_list(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith("order_details_"))
 async def order_details_handler(callback: CallbackQuery):
     await callback.answer('')
-    order_id = str(callback.data).split("_")[2]
+    order_id = int(str(callback.data).split("_")[2])
     
     try:
         with Session() as session:
@@ -1152,20 +1153,15 @@ async def order_details_handler(callback: CallbackQuery):
             
             message += "\nПри возникновении вопросов по заказу свяжитесь с нашей службой поддержки."
             
-            # Создаем клавиатуру для действий с заказом
+            # Создаем клавиатуру для действий с заказом (минимум для MVP)
             kb = InlineKeyboardBuilder()
-            
-            # Если заказ в обработке, добавляем кнопку отмены
-            if order.status == "processing" or order.status == "confirmed":
-                kb.button(text="❌ Отменить заказ", callback_data=f"cancel_order_{order.id}")
-            
-            kb.button(text="🔄 Повторить заказ", callback_data=f"repeat_order_{order.id}")
-            
-            # Если есть трек-номер, добавляем кнопку отслеживания
-            if order.tracking_number:
-                kb.button(text="📍 Отследить заказ", callback_data=f"track_delivery_{order.tracking_number}")
-            
-            kb.button(text="📱 Связаться с менеджером", callback_data="contact_manager")
+            # TODO(MVP+): отмена/повтор/трек/связь с менеджером
+            # if order.status in ("processing", "confirmed"):
+            #     kb.button(text="❌ Отменить заказ", callback_data=f"cancel_order_{order.id}")
+            # kb.button(text="🔄 Повторить заказ", callback_data=f"repeat_order_{order.id}")
+            # if order.tracking_number:
+            #     kb.button(text="📍 Отследить заказ", callback_data=f"track_delivery_{order.tracking_number}")
+            # kb.button(text="📱 Связаться с менеджером", callback_data="contact_manager")
             kb.button(text="🔙 К списку заказов", callback_data="orders")
             kb.button(text="🏠 Главное меню", callback_data="main_page")
             

@@ -7,7 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 # MARK: models
 
 class Base(DeclarativeBase):
-    created_date = Column(DateTime, default=datetime.datetime.now())
+    created_date = Column(DateTime, default=datetime.datetime.now)
 
 class Favorite(Base):    
     __tablename__ = 'favorites'
