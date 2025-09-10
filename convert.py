@@ -1,10 +1,7 @@
 import csv
-from sqlalchemy.orm import Session
+import asyncio
 from models import Base, Product
-from database import engine
-
-# Настройка подключения к базе данных
-Base.metadata.create_all(engine)
+from database import AsyncSessionFactory, create_tables
 
 def convert_to_bool(value):
     """Преобразует различные значения в булевое значение"""
@@ -29,14 +26,14 @@ def check_if_bestseller(value):
     """Проверяет, является ли товар хитом продаж"""
     return bool(value and value.strip()) 
 
-def process_csv(file_path):
+async def process_csv(file_path):
     """Обрабатывает CSV файл и заполняет базу данных"""
     with open(file_path, 'r', encoding='utf-8') as file:
         # Используем delimiter ';' так как CSV файл использует точку с запятой
         reader = csv.DictReader(file, delimiter=";")
         
         # Создаем сессию для работы с базой данных
-        with Session(engine) as session:
+        async with AsyncSessionFactory() as session:
             for row in reader:
                 # Преобразуем цену из строки в число с плавающей точкой
                 price = float(row.get('price', 0).replace(',', '.'))
@@ -77,9 +74,13 @@ def process_csv(file_path):
                 session.add(product)
             
             # Сохраняем изменения в базе данных
-            session.commit()
+            await session.commit()
             print("Импорт данных завершен успешно!")
 
-if __name__ == "__main__":
+async def main():
+    await create_tables()
     csv_path = "old_db_lite.csv"  # Путь к CSV файлу
-    process_csv(csv_path)
+    await process_csv(csv_path)
+
+if __name__ == "__main__":
+    asyncio.run(main())

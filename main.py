@@ -9,9 +9,10 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from art import tprint
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Favorite, OrderItems, User, Product, CartItem, Orders, Reviews
-from database import *
+from database import AsyncSessionFactory, create_tables
 from kbs import *
 from config import settings
 from utils import *
@@ -82,10 +83,11 @@ async def command_start_handler(message: Message) -> None:
         "Для начала работы выберите одно из действий на клавиатуре ниже 👇"
     )
     
-    with Session() as session:
+    async with AsyncSessionFactory() as session:
         logger.info(f"User {message.from_user.id} find in db")
         stmt = select(User).where(User.telegram_id == message.from_user.id)
-        user = session.scalar(stmt)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
         if user is None:
             user = User(
                 telegram_id=message.from_user.id,
@@ -95,13 +97,16 @@ async def command_start_handler(message: Message) -> None:
                 address=""
             )
             session.add(user)
-            session.commit()
+            await session.commit()
             logger.info(f"User {message.from_user.id} added to db")
             return await message.answer(welcome_message, reply_markup=main_kb())
         
-        cart_count = session.query(CartItem).filter(CartItem.user_id == message.from_user.id).count()
-        favorites_count = session.query(Favorite).filter(Favorite.user_id == message.from_user.id).count()
-        orders_count = session.query(Orders).filter(Orders.user_id == message.from_user.id).count()
+        cart_result = await session.execute(select(CartItem).where(CartItem.user_id == message.from_user.id))
+        cart_count = len(cart_result.scalars().all())
+        fav_result = await session.execute(select(Favorite).where(Favorite.user_id == message.from_user.id))
+        favorites_count = len(fav_result.scalars().all())
+        orders_result = await session.execute(select(Orders).where(Orders.user_id == message.from_user.id))
+        orders_count = len(orders_result.scalars().all())
         
         welcome_back_message = (
                 f"👋 С возвращением в MDM Bot!\n\n"
@@ -122,11 +127,15 @@ async def main_page(callback: CallbackQuery):
     await callback.answer("")
 
     try:
-        with Session() as session:
-            user = session.query(User).filter(User.telegram_id == callback.from_user.id).first()
-            cart_count = session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).count()
-            favorites_count = session.query(Favorite).filter(Favorite.user_id == callback.from_user.id).count()
-            orders_count = session.query(Orders).filter(Orders.user_id == callback.from_user.id).count()
+        async with AsyncSessionFactory() as session:
+            user_result = await session.execute(select(User).where(User.telegram_id == callback.from_user.id))
+            user = user_result.scalar_one_or_none()
+            cart_result = await session.execute(select(CartItem).where(CartItem.user_id == callback.from_user.id))
+            cart_count = len(cart_result.scalars().all())
+            fav_result = await session.execute(select(Favorite).where(Favorite.user_id == callback.from_user.id))
+            favorites_count = len(fav_result.scalars().all())
+            orders_result = await session.execute(select(Orders).where(Orders.user_id == callback.from_user.id))
+            orders_count = len(orders_result.scalars().all())
 
             main_page_text = make_main_page_text(user, cart_count, favorites_count, orders_count)
             
@@ -189,11 +198,12 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
     
     await state.clear()  # Очищаем состояние после получения данных
     
-    with Session() as session:
+    async with AsyncSessionFactory() as session:
         logger.info(f"User {user_id} search by vendor code: {vendor_code}")
         try:
             stmt = select(Product).where(Product.vendor_code == vendor_code)
-            product = session.scalars(stmt).first()
+            result = await session.execute(stmt)
+            product = result.scalar_one_or_none()
             
             if product is None:
                 # Улучшенное сообщение об отсутствии товара
@@ -213,7 +223,7 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
             return await message.answer_photo(
                 photo=product.image,
                 caption=product_info,
-                reply_markup=product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
+                reply_markup=await product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
                 parse_mode="HTML"
             )
             
@@ -233,12 +243,13 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
     
     await state.clear()  # Очищаем состояние после получения данных
     
-    with Session() as session:
+    async with AsyncSessionFactory() as session:
         logger.info(f"User {user_id} search by name: {search_term}")
         try:
             # Поиск по частичному совпадению с названием
             stmt = select(Product).where(Product.name.ilike(f"%{search_term}%")).limit(5)
-            products = session.scalars(stmt).all()
+            result = await session.execute(stmt)
+            products = result.scalars().all()
             
             if not products:
                 # Улучшенное сообщение об отсутствии товаров
@@ -263,7 +274,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
                 return await message.answer_photo(
                     photo=product.image,
                     caption=product_info,
-                    reply_markup=product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
+                    reply_markup=await product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
                     parse_mode="HTML"
                 )
             else:
@@ -314,9 +325,9 @@ async def view_product_handler(callback: CallbackQuery):
     product_id = int(str(callback.data).split("_")[2])
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             stmt = select(Product).where(Product.id == product_id)
-            product = session.scalars(stmt).first()
+            product = (await session.execute(stmt)).scalar_one_or_none()
             
             if not product:
                 await callback.message.answer("Товар не найден", reply_markup=main_kb())
@@ -329,7 +340,7 @@ async def view_product_handler(callback: CallbackQuery):
             return await callback.message.answer_photo(
                 photo=product.image,
                 caption=product_info,
-                reply_markup=product_kb(product.id, user_id=callback.from_user.id, session=session),
+                reply_markup=await product_kb(product.id, user_id=callback.from_user.id, session=session),
                 parse_mode="HTML"
             )
             
@@ -348,12 +359,12 @@ async def favorites_list(callback: CallbackQuery):
     user_id: int = callback.from_user.id
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             stmt = select(Product, Favorite).join(
                 Favorite, Favorite.product_id == Product.id
             ).where(Favorite.user_id == user_id)
             
-            results = session.execute(stmt).all()
+            results = (await session.execute(stmt)).all()
             
             if not results:
                 await callback.message.answer(
@@ -410,12 +421,13 @@ async def add_product_to_favorites(callback: CallbackQuery):
     product_id = int(str(callback.data).split("_")[2])
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Проверяем, не добавлен ли уже товар в избранное
-            existing = session.query(Favorite).filter(
+            existing_result = await session.execute(select(Favorite).where(
                 Favorite.user_id == callback.from_user.id,
                 Favorite.product_id == product_id
-            ).first()
+            ))
+            existing = existing_result.scalar_one_or_none()
                         
             if not existing:
                 # Добавляем в избранное
@@ -424,7 +436,7 @@ async def add_product_to_favorites(callback: CallbackQuery):
                     product_id=product_id
                 )
                 session.add(fav)
-                session.commit()
+                await session.commit()
                 
                 # Получаем информацию о товаре для обновления сообщения
                 await update_product_card(callback=callback, product_id=product_id, session=session)
@@ -443,16 +455,17 @@ async def remove_from_favorites(callback: CallbackQuery):
     product_id = int(str(callback.data).split("_")[2])
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Ищем запись в избранном
-            fav = session.query(Favorite).filter(
+            fav_result = await session.execute(select(Favorite).where(
                 Favorite.user_id == callback.from_user.id,
                 Favorite.product_id == product_id
-            ).first()
+            ))
+            fav = fav_result.scalar_one_or_none()
             
             if fav:
                 session.delete(fav)
-                session.commit()
+                await session.commit()
                 
                 # Получаем информацию о товаре для обновления сообщения
                 await update_product_card(callback=callback, product_id=product_id, session=session)
@@ -472,10 +485,10 @@ async def profile_page(callback: CallbackQuery):
     logger.info(f"Parsing user {callback.from_user.id} profile page")
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Получаем информацию о пользователе
             stmt = select(User).where(User.telegram_id == callback.from_user.id)
-            user = session.scalars(stmt).first()
+            user = (await session.execute(stmt)).scalar_one_or_none()
             
             if not user:
                 return await callback.message.answer(
@@ -484,10 +497,10 @@ async def profile_page(callback: CallbackQuery):
                 )
             
             # Получаем статистику пользователя
-            cart_count = session.query(CartItem).filter(CartItem.user_id == callback.from_user.id).count()
-            favorites_count = session.query(Favorite).filter(Favorite.user_id == callback.from_user.id).count()
-            orders_count = session.query(Orders).filter(Orders.user_id == callback.from_user.id).count()
-            reviews_count = session.query(Reviews).filter(Reviews.user_id == callback.from_user.id).count()
+            cart_count = len((await session.execute(select(CartItem).where(CartItem.user_id == callback.from_user.id))).scalars().all())
+            favorites_count = len((await session.execute(select(Favorite).where(Favorite.user_id == callback.from_user.id))).scalars().all())
+            orders_count = len((await session.execute(select(Orders).where(Orders.user_id == callback.from_user.id))).scalars().all())
+            reviews_count = len((await session.execute(select(Reviews).where(Reviews.user_id == callback.from_user.id))).scalars().all())
             
             # Определяем статус профиля
             profile_status = "⭐ Премиум" if orders_count > 5 else "🔹 Стандартный"
@@ -565,11 +578,11 @@ async def edit_address_handler(callback: CallbackQuery, state: FSMContext):
 @dp.message(ProfileForm.name)
 async def process_name(message: Message, state: FSMContext):
     try:
-        with Session() as session:
-            user = session.query(User).filter(User.telegram_id == message.from_user.id).first()
+        async with AsyncSessionFactory() as session:
+            user = (await session.execute(select(User).where(User.telegram_id == message.from_user.id))).scalar_one_or_none()
             if user:
                 user.name = message.text
-                session.commit()
+                await session.commit()
                 await message.answer(
                     "✅ Имя успешно обновлено!",
                     reply_markup=InlineKeyboardBuilder().button(
@@ -600,11 +613,11 @@ async def process_phone(message: Message, state: FSMContext):
         )
     
     try:
-        with Session() as session:
-            user = session.query(User).filter(User.telegram_id == message.from_user.id).first()
+        async with AsyncSessionFactory() as session:
+            user = (await session.execute(select(User).where(User.telegram_id == message.from_user.id))).scalar_one_or_none()
             if user:
                 user.phone_number = phone
-                session.commit()
+                await session.commit()
                 await message.answer(
                     "✅ Номер телефона успешно обновлен!",
                     reply_markup=InlineKeyboardBuilder().button(
@@ -624,11 +637,11 @@ async def process_address(message: Message, state: FSMContext):
     address = message.text
     
     try:
-        with Session() as session:
-            user = session.query(User).filter(User.telegram_id == message.from_user.id).first()
+        async with AsyncSessionFactory() as session:
+            user = (await session.execute(select(User).where(User.telegram_id == message.from_user.id))).scalar_one_or_none()
             if user:
                 user.address = address
-                session.commit()
+                await session.commit()
                 await message.answer(
                     "✅ Адрес доставки успешно обновлен!",
                     reply_markup=InlineKeyboardBuilder().button(
@@ -651,13 +664,13 @@ async def cart_page(callback: CallbackQuery):
     user_id: int = callback.from_user.id
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Получаем товары в корзине вместе с их количеством
             stmt = select(Product, CartItem).join(
                 CartItem, CartItem.product_id == Product.id
             ).where(CartItem.user_id == user_id)
             
-            results = session.execute(stmt).all()
+            results = (await session.execute(stmt)).all()
             
             if not results:
                 return await callback.message.answer(
@@ -714,12 +727,13 @@ async def add_product_to_cart(callback: CallbackQuery):
     product_id = int(str(callback.data).split("_")[2])
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Проверяем, есть ли уже этот товар в корзине
-            existing = session.query(CartItem).filter(
+            existing_result = await session.execute(select(CartItem).where(
                 CartItem.user_id == callback.from_user.id,
                 CartItem.product_id == product_id
-            ).first()
+            ))
+            existing = existing_result.scalar_one_or_none()
             
             if not existing:
                 # Добавляем товар в корзину
@@ -729,7 +743,7 @@ async def add_product_to_cart(callback: CallbackQuery):
                     quantity=1
                 )
                 session.add(cart_item)
-                session.commit()
+                await session.commit()
                 
                 # Получаем информацию о товаре для обновления сообщения
                 await update_product_card(callback=callback, product_id=product_id, session=session)
@@ -748,17 +762,18 @@ async def remove_product_from_cart(callback: CallbackQuery):
     product_id = int(str(callback.data).split("_")[2])
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Ищем товар в корзине
-            cart_item = session.query(CartItem).filter(
+            cart_item_result = await session.execute(select(CartItem).where(
                 CartItem.user_id == callback.from_user.id,
                 CartItem.product_id == product_id
-            ).first()
+            ))
+            cart_item = cart_item_result.scalar_one_or_none()
             
             if cart_item:
 
                 session.delete(cart_item)
-                session.commit()
+                await session.commit()
         
                 # Получаем информацию о товаре для обновления сообщения
                 await update_product_card(callback=callback, product_id=product_id, session=session)
@@ -782,9 +797,9 @@ async def remove_product_from_cart(callback: CallbackQuery):
 @dp.callback_query(F.data == "checkout")
 async def checkout_handler(callback: CallbackQuery):
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Получаем данные пользователя
-            user_data = session.query(User).filter(User.telegram_id == callback.from_user.id).first()
+            user_data = (await session.execute(select(User).where(User.telegram_id == callback.from_user.id))).scalar_one_or_none()
             if not user_data:
                 await callback.answer("❌ Ошибка: пользователь не найден")
                 return
@@ -814,9 +829,12 @@ async def checkout_handler(callback: CallbackQuery):
                 return
             
             # Получаем содержимое корзины пользователя
-            cart_items = session.query(CartItem, Product).join(
-                Product, CartItem.product_id == Product.id
-            ).filter(CartItem.user_id == callback.from_user.id).all()
+            cart_items_result = await session.execute(
+                select(CartItem, Product).join(
+                    Product, CartItem.product_id == Product.id
+                ).where(CartItem.user_id == callback.from_user.id)
+            )
+            cart_items = cart_items_result.all()
             
             if not cart_items:
                 await callback.answer("❌ Ваша корзина пуста!")
@@ -886,17 +904,18 @@ async def checkout_handler(callback: CallbackQuery):
 @dp.callback_query(F.data == "checkout_final")
 async def checkout_handler_final(callback: CallbackQuery):
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Проверяем данные пользователя еще раз
-            user = session.query(User).filter(User.telegram_id == callback.from_user.id).first()
+            user = (await session.execute(select(User).where(User.telegram_id == callback.from_user.id))).scalar_one_or_none()
             if not user or not user.name or not user.phone_number or not user.address:
                 await callback.answer("❌ Необходимо заполнить данные получателя!")
                 return
             
             # Все товары в корзине пользователя
-            cart_items = session.query(CartItem).filter(
-                CartItem.user_id == callback.from_user.id
-            ).all()
+            cart_items_result = await session.execute(
+                select(CartItem).where(CartItem.user_id == callback.from_user.id)
+            )
+            cart_items = cart_items_result.scalars().all()
             
             if not cart_items:
                 await callback.answer("❌ Ваша корзина пуста!")
@@ -905,7 +924,7 @@ async def checkout_handler_final(callback: CallbackQuery):
             # Подсчитываем сумму заказа
             total_sum = 0
             for item in cart_items:
-                product = session.query(Product).filter(Product.id == item.product_id).first()
+                product = (await session.execute(select(Product).where(Product.id == item.product_id))).scalar_one_or_none()
                 if product:
                     total_sum += product.price * item.quantity
             
@@ -920,11 +939,11 @@ async def checkout_handler_final(callback: CallbackQuery):
             
             # Добавляем заказ в базу и получаем его ID
             session.add(order)
-            session.flush()  # Чтобы получить ID заказа
+            await session.flush()  # Чтобы получить ID заказа
             
             # Создаем записи OrderItems для каждого товара в заказе
             for item in cart_items:
-                product = session.query(Product).filter(Product.id == item.product_id).first()
+                product = (await session.execute(select(Product).where(Product.id == item.product_id))).scalar_one_or_none()
                 if product:
                     order_item = OrderItems(
                         order_id=order.id,
@@ -935,12 +954,12 @@ async def checkout_handler_final(callback: CallbackQuery):
                     session.add(order_item)
             
             # Очищаем корзину пользователя
-            session.query(CartItem).filter(
-                CartItem.user_id == callback.from_user.id
-            ).delete()
+            # Clear user's cart - delete cart items individually  
+            for item in cart_items:
+                session.delete(item)
             
             # Сохраняем все изменения
-            session.commit()
+            await session.commit()
             
             # Отправляем сообщение об успешном оформлении заказа
             order_message = (
@@ -993,11 +1012,12 @@ async def orders_list(callback: CallbackQuery):
     user_id: int = callback.from_user.id
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Получаем все заказы пользователя
-            orders = session.query(Orders).filter(
-                Orders.user_id == user_id
-            ).order_by(Orders.order_date.desc()).all()
+            orders_result = await session.execute(
+                select(Orders).where(Orders.user_id == user_id).order_by(Orders.order_date.desc())
+            )
+            orders = orders_result.scalars().all()
             
             if not orders:
                 return await callback.message.answer(
@@ -1020,9 +1040,12 @@ async def orders_list(callback: CallbackQuery):
                     orders_by_date[order_date] = []
                 
                 # Получаем информацию о товарах в заказе
-                order_items = session.query(OrderItems, Product).join(
-                    Product, OrderItems.product_id == Product.id
-                ).filter(OrderItems.order_id == order.id).all()
+                order_items_result = await session.execute(
+                    select(OrderItems, Product).join(
+                        Product, OrderItems.product_id == Product.id
+                    ).where(OrderItems.order_id == order.id)
+                )
+                order_items = order_items_result.all()
                 
                 # Создаем словарь с информацией о заказе
                 order_info = {
@@ -1052,9 +1075,10 @@ async def orders_list(callback: CallbackQuery):
                     order_date = order.order_date.strftime('%d.%m.%Y %H:%M')
                     
                     # Получаем информацию о товарах в заказе
-                    items_count = session.query(OrderItems).filter(
-                        OrderItems.order_id == order.id
-                    ).with_entities(OrderItems.quantity).all()
+                    items_result = await session.execute(
+                        select(OrderItems.quantity).where(OrderItems.order_id == order.id)
+                    )
+                    items_count = items_result.all()
                     
                     total_items = sum(item[0] for item in items_count)
                     
@@ -1084,9 +1108,9 @@ async def order_details_handler(callback: CallbackQuery):
     order_id = int(str(callback.data).split("_")[2])
     
     try:
-        with Session() as session:
+        async with AsyncSessionFactory() as session:
             # Получаем информацию о заказе
-            order = session.query(Orders).filter(Orders.id == order_id).first()
+            order = (await session.execute(select(Orders).where(Orders.id == order_id))).scalar_one_or_none()
             
             if not order:
                 return await callback.message.answer(
@@ -1095,12 +1119,15 @@ async def order_details_handler(callback: CallbackQuery):
                 )
             
             # Получаем пользователя
-            user = session.query(User).filter(User.telegram_id == order.user_id).first()
+            user = (await session.execute(select(User).where(User.telegram_id == order.user_id))).scalar_one_or_none()
             
             # Получаем товары в заказе
-            order_items = session.query(OrderItems, Product).join(
-                Product, OrderItems.product_id == Product.id
-            ).filter(OrderItems.order_id == order.id).all()
+            order_items_result = await session.execute(
+                select(OrderItems, Product).join(
+                    Product, OrderItems.product_id == Product.id
+                ).where(OrderItems.order_id == order.id)
+            )
+            order_items = order_items_result.all()
             
             if not order_items:
                 return await callback.message.answer(
@@ -1235,7 +1262,7 @@ async def help_page(callback: CallbackQuery):
 # MARK: main
 
 async def main() -> None:
-    create_tables()
+    await create_tables()
     bot = Bot(token=settings.BOT_TOKEN)
     
     await dp.start_polling(bot)

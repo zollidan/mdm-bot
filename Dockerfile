@@ -23,4 +23,4 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Run the bot using uv
-CMD ["uv", "run", "python", "main.py"]
+CMD ["uv", "run", "main.py"]

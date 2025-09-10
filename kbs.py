@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy import select
 
 from models import Favorite, CartItem
 
@@ -64,7 +65,7 @@ def product_not_found_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def product_kb(product_id: int, session, user_id) -> InlineKeyboardMarkup:
+async def product_kb(product_id: int, session, user_id) -> InlineKeyboardMarkup:
     """
     Создает клавиатуру для страницы товара.
 
@@ -81,10 +82,13 @@ def product_kb(product_id: int, session, user_id) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
 
     # проверка на наличие товара в избранном
-    is_fav = session.query(Favorite).filter(
-        Favorite.user_id == user_id, Favorite.product_id == product_id).first() is not None
-    is_cart = session.query(CartItem).filter(
-        CartItem.user_id == user_id, CartItem.product_id == product_id).first() is not None
+    fav_result = await session.execute(select(Favorite).where(
+        Favorite.user_id == user_id, Favorite.product_id == product_id))
+    is_fav = fav_result.scalar_one_or_none() is not None
+    
+    cart_result = await session.execute(select(CartItem).where(
+        CartItem.user_id == user_id, CartItem.product_id == product_id))
+    is_cart = cart_result.scalar_one_or_none() is not None
 
     if is_cart:
         kb.button(

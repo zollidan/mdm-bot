@@ -57,7 +57,8 @@ async def update_product_card(callback, product_id, session):
     """
     # Получаем информацию о товаре для обновления сообщения
     stmt = select(Product).where(Product.id == product_id)
-    product = session.scalars(stmt).first()
+    result = await session.execute(stmt)
+    product = result.scalar_one_or_none()
 
     if product:
         product_info = make_product_card(product)
@@ -65,7 +66,7 @@ async def update_product_card(callback, product_id, session):
         # Обновляем сообщение с новой клавиатурой
         await callback.message.edit_caption(
             caption=product_info,
-            reply_markup=product_kb(
+            reply_markup=await product_kb(
                 product_id=product.id, session=session, user_id=callback.from_user.id),
             parse_mode="HTML"
         )
