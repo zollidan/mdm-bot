@@ -12,8 +12,8 @@ class Settins(BaseSettings):
     POSTGRES_PORT: str
     POSTGRES_DB: str
 
-    model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(__file__), ".env"))
+    # model_config = SettingsConfigDict(
+    #     env_file=os.path.join(os.path.dirname(__file__), ".env"))
 
 
 settings = Settins()
