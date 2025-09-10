@@ -966,7 +966,7 @@ async def checkout_handler_final(callback: CallbackQuery):
             kb.button(text="🏠 Главное меню", callback_data="main_page")
             kb.adjust(1, 2)
             
-            await callback.message.answer(
+            await callback.message.edit_text(
                 order_message,
                 parse_mode="HTML",
                 reply_markup=kb.as_markup()
