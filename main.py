@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import logging
+from typing import Any, Coroutine
+
 from aiogram import F, Bot, Dispatcher
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -68,9 +70,8 @@ class ProfileForm(StatesGroup):
     address = State()
 
 # MARK: /start
-
 @dp.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
+async def command_start_handler(message: Message) -> Message:
     
     welcome_message = (
         "🎉 Добро пожаловать в MDM Bot! 🎉\n\n"

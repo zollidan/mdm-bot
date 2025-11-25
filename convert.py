@@ -69,11 +69,9 @@ async def process_csv(file_path):
                     availability=map_availability(row.get('Наличие', '')),
                     status=row.get('Статус товара', '')
                 )
-                
-                # Добавляем товар в сессию
+
                 session.add(product)
-            
-            # Сохраняем изменения в базе данных
+
             await session.commit()
             print("Импорт данных завершен успешно!")
 
