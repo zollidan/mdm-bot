@@ -7,7 +7,7 @@ from config import settings
 
 url = f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
 
-async_engine = create_async_engine(url, echo=True)
+async_engine = create_async_engine(url)
 
 AsyncSessionFactory = async_sessionmaker(async_engine, expire_on_commit=False)
 
