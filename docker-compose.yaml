@@ -1,4 +1,13 @@
 services:
+  bot:
+    build: .
+    container_name: mdm_bot
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
   postgres:
     image: postgres:16-alpine
     env_file: .env
@@ -18,6 +27,12 @@ services:
         limits:
           cpus: "1"
           memory: 4G
+    networks:
+      - default
 
 volumes:
   postgres-data:
+
+networks:
+  default:
+    driver: bridge

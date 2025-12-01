@@ -1,26 +1,11 @@
-FROM python:3.11-slim
+FROM python:3.13-slim-trixie
 
-# Install uv package manager
+# Устанавливаем менеджер uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set working directory
 WORKDIR /app
+ADD . /app
 
-# Copy uv configuration files
-COPY pyproject.toml uv.lock ./
+RUN uv sync --locked
 
-# Install dependencies using uv
-RUN uv sync --frozen --no-cache
-
-# Copy application code
-COPY . .
-
-# Create directory for logs and database
-RUN mkdir -p /app/logs
-
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-
-# Run the bot using uv
-CMD ["uv", "run", "main.py"]
+CMD [ "uv", "run", "main.py"]
