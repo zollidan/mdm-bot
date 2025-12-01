@@ -55,7 +55,21 @@ class Product(Base):
     usd_price: Mapped[Optional[float]] = mapped_column(Float(), nullable=True)  # Цена в у.е. (Цена у.е.)
     availability: Mapped[str] = mapped_column(String())  # Наличие (есть/нет)
     status: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Статус товара
-    
+
+    # Складские остатки
+    stock_chashnikovo: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Москва, Чашниково
+    stock_kantemirovskaya: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Москва, Кантемировская
+    stock_spb: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Санкт-Петербург
+    stock_voronezh: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Воронеж
+    stock_korolev: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Королёв
+    stock_krasnodar: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Краснодар
+    stock_kazan: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Казань
+    stock_online: Mapped[Optional[str]] = mapped_column(String(), nullable=True)  # Интернет-магазин
+
+    # Цены для Беларуси
+    price_byn_legal: Mapped[Optional[float]] = mapped_column(Float(), nullable=True)  # Цена для ЮЛ (Бел. BYN)
+    price_byn_retail: Mapped[Optional[float]] = mapped_column(Float(), nullable=True)  # Цена для ФЛ (Бел. BYN)
+
     favorites: Mapped[List["Favorite"]] = relationship(back_populates="product")
     cart_items: Mapped[list["CartItem"]] = relationship(back_populates="product")
     order_items: Mapped[list["OrderItems"]] = relationship(back_populates="product")

@@ -29,8 +29,8 @@ def check_if_bestseller(value):
 async def process_csv(file_path):
     """Обрабатывает CSV файл и заполняет базу данных"""
     with open(file_path, 'r', encoding='utf-8') as file:
-        # Используем delimiter ';' так как CSV файл использует точку с запятой
-        reader = csv.DictReader(file, delimiter=";")
+        # Используем delimiter ',' для full_database.csv
+        reader = csv.DictReader(file, delimiter=",")
         
         # Создаем сессию для работы с базой данных
         async with AsyncSessionFactory() as session:
@@ -45,7 +45,14 @@ async def process_csv(file_path):
                 # Преобразуем цену в долларах
                 usd_price_str = row.get('Цена у.е.', '')
                 usd_price = float(usd_price_str.replace(',', '.')) if usd_price_str else None
-                
+
+                # Преобразуем цены для Беларуси
+                price_byn_legal_str = row.get('Цена для ЮЛ (Бел. BYN.): Цена', '')
+                price_byn_legal = float(price_byn_legal_str.replace(',', '.')) if price_byn_legal_str else None
+
+                price_byn_retail_str = row.get('Цена для ФЛ (Бел. BYN.): Цена', '')
+                price_byn_retail = float(price_byn_retail_str.replace(',', '.')) if price_byn_retail_str else None
+
                 # Получаем первую картинку
                 image = extract_first_image(row.get('Pictures', ''))
                 
@@ -67,7 +74,19 @@ async def process_csv(file_path):
                     unit=row.get('Единица измерения', 'шт'),
                     usd_price=usd_price,
                     availability=map_availability(row.get('Наличие', '')),
-                    status=row.get('Статус товара', '')
+                    status=row.get('Статус товара', ''),
+                    # Складские остатки
+                    stock_chashnikovo=row.get('Количество на складе «Москва, Чашниково»', ''),
+                    stock_kantemirovskaya=row.get('Количество на складе «Москва, Кантемировская»', ''),
+                    stock_spb=row.get('Количество на складе «Санкт-Петербург»', ''),
+                    stock_voronezh=row.get('Количество на складе «Воронеж»', ''),
+                    stock_korolev=row.get('Количество на складе «Королёв»', ''),
+                    stock_krasnodar=row.get('Количество на складе «Краснодар»', ''),
+                    stock_kazan=row.get('Количество на складе «Казань»', ''),
+                    stock_online=row.get('Количество на складе «Интернет-магазин»', ''),
+                    # Цены для Беларуси
+                    price_byn_legal=price_byn_legal,
+                    price_byn_retail=price_byn_retail
                 )
                 
                 # Добавляем товар в сессию
@@ -79,7 +98,7 @@ async def process_csv(file_path):
 
 async def main():
     await create_tables()
-    csv_path = "old_db_lite.csv"  # Путь к CSV файлу
+    csv_path = "full_database.csv"  # Путь к CSV файлу
     await process_csv(csv_path)
 
 if __name__ == "__main__":
