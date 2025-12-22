@@ -60,12 +60,12 @@ services:
       - meilisearch-data:/meili_data
     ports:
       - "7700:7700"
-    healthcheck:
-      test: ["CMD", "meilisearch", "--health-check"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+    # healthcheck:
+    #   test: ["CMD", "meilisearch", "--health-check"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 15s
     restart: unless-stopped
     deploy:
       resources:
