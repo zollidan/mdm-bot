@@ -20,8 +20,7 @@ from meilisearch_client import get_meili_client
 
 """
 ✅ F.data == "main_page" - Обработчик главной страницы
-✅ F.data == "search" - Обработчик поиска
-✅ F.data == "search_by_name" - Обработчик поиска по названию
+✅ F.data == "search" - Обработчик универсального поиска (MeiliSearch)
 ✅ F.data.startswith("view_product_") - Просмотр товара
 ✅ F.data == "favorites" - Страница избранных товаров
 ✅ F.data.startswith("add_fav_") - Добавление товара в избранное
@@ -59,8 +58,7 @@ dp = Dispatcher()
 # MARK: states
 # Класс состояний для формы поиска
 class SearchForm(StatesGroup):
-    vendor_code_search = State()
-    name_search = State()
+    searching = State()
     
 # Класс состояний для формы профиля
 class ProfileForm(StatesGroup):
@@ -160,92 +158,34 @@ async def search_handler(callback: CallbackQuery, state: FSMContext) -> None:
     # Обновляем интерфейс поиска
     search_message = (
         "🔍 <b>Поиск товаров</b>\n\n"
-        "Выберите способ поиска товаров:\n"
-        "• По названию товара\n"
-        "Или введите артикул товара прямо сейчас:"
+        "Введите запрос для поиска:\n"
+        "• Название товара\n"
+        "• Артикул\n"
+        "• Производитель\n"
+        "• Модель\n\n"
+        "Поиск работает с опечатками и частичными совпадениями!"
     )
 
     await callback.message.answer(
         search_message,
-        reply_markup=search_kb(),
         parse_mode="HTML"
     )
-    
-    # Устанавливаем состояние для поиска по артикулу
-    await state.set_state(SearchForm.vendor_code_search)
-    await callback.answer("")
-        
-# MARK: search_by_name
 
-# Обработчик для поиска по названию
-@dp.callback_query(F.data == "search_by_name")
-async def search_by_name_handler(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.set_state(SearchForm.name_search)
-    
-    await callback.message.answer(
-        "📝 <b>Поиск по названию</b>\n\n"
-        "Введите название или часть названия товара:",
-        parse_mode="HTML"
-    )
-    
+    # Устанавливаем единое состояние поиска
+    await state.set_state(SearchForm.searching)
     await callback.answer("")
-        
-# MARK: search_by_code
-# Обработчик для поиска по артикулу
-@dp.message(SearchForm.vendor_code_search)
-async def process_vendor_code_search(message: Message, state: FSMContext) -> None:
-    user_id = message.from_user.id
-    vendor_code = message.text
-    
-    await state.clear()  # Очищаем состояние после получения данных
-    
-    async with AsyncSessionFactory() as session:
-        logger.info(f"User {user_id} search by vendor code: {vendor_code}")
-        try:
-            stmt = select(Product).where(Product.vendor_code == vendor_code)
-            result = await session.execute(stmt)
-            product = result.scalar_one_or_none()
-            
-            if product is None:
-                # Улучшенное сообщение об отсутствии товара
-                return await message.answer(
-                    "🔍 <b>Товар не найден</b>\n\n"
-                    f"К сожалению, товар с артикулом <code>{vendor_code}</code> не найден в нашей базе данных.\n\n"
-                    "• Проверьте правильность ввода артикула\n"
-                    "• Попробуйте поиск по названию товара\n",
-                    parse_mode="HTML",
-                    reply_markup=product_not_found_kb()
-                )
-            
-            # Формируем подробное описание товара
-            product_info = make_product_card(product)
-            
-            # Отправляем фото с описанием товара
-            return await message.answer_photo(
-                photo=product.image,
-                caption=product_info,
-                reply_markup=await product_kb(product_id=product.id, user_id=message.from_user.id, session=session),
-                parse_mode="HTML"
-            )
-            
-        except Exception as e:
-            logger.error(f"Ошибка при поиске товара: {e}")
-            return await message.answer(
-                "😔 Произошла ошибка при поиске товара. Пожалуйста, попробуйте снова позже.",
-                reply_markup=main_kb()
-            )
-        
-# MARK: search_by_name
-# Обработчик для поиска по названию
-@dp.message(SearchForm.name_search)
-async def process_name_search(message: Message, state: FSMContext) -> None:
+
+# MARK: universal_search
+# Универсальный обработчик поиска через MeiliSearch
+@dp.message(SearchForm.searching)
+async def process_search(message: Message, state: FSMContext) -> None:
     user_id = message.from_user.id
     search_term = message.text
 
     await state.clear()  # Очищаем состояние после получения данных
 
     async with AsyncSessionFactory() as session:
-        logger.info(f"User {user_id} search by name: {search_term}")
+        logger.info(f"User {user_id} universal search: {search_term}")
         try:
             # Поиск через Meilisearch
             meili = await get_meili_client()
@@ -266,7 +206,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
                     f"К сожалению, товары по запросу <code>{search_term}</code> не найдены.\n\n"
                     "• Проверьте правильность написания\n"
                     "• Попробуйте использовать более общие ключевые слова\n"
-                    "• Воспользуйтесь поиском по артикулу или категории",
+                    "• Используйте название, артикул, производителя или модель",
                     parse_mode="HTML",
                     reply_markup=product_not_found_kb()
                 )
@@ -318,7 +258,7 @@ async def process_name_search(message: Message, state: FSMContext) -> None:
                 )
             
         except Exception as e:
-            logger.error(f"Ошибка при поиске товара по названию: {e}")
+            logger.error(f"Ошибка при универсальном поиске товара: {e}")
             return await message.answer(
                 "😔 Произошла ошибка при поиске товаров. Пожалуйста, попробуйте снова позже.",
                 reply_markup=main_kb()

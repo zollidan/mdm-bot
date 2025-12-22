@@ -20,12 +20,8 @@ def main_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def search_kb():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="📝 По названию", callback_data="search_by_name")
-    kb.button(text="🔙 Назад", callback_data="main_page")
-    kb.adjust(2)
-    return kb.as_markup()
+# Клавиатура поиска больше не нужна - поиск стал универсальным
+# Оставлена для обратной совместимости, но не используется
 
 
 def cart_kb(results) -> InlineKeyboardMarkup:
@@ -57,11 +53,10 @@ def cart_kb(results) -> InlineKeyboardMarkup:
 
 def product_not_found_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    kb.button(text="🔢 Поиск по артикулу", callback_data="search")
-    kb.button(text="📝 Поиск по названию", callback_data="search_by_name")
+    kb.button(text="🔍 Новый поиск", callback_data="search")
     kb.button(text="🏠 Главное меню", callback_data="main_page")
 
-    kb.adjust(2, 2)
+    kb.adjust(1)
     return kb.as_markup()
 
 
