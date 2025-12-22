@@ -61,11 +61,11 @@ services:
     ports:
       - "7700:7700"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
+      test: ["CMD", "meilisearch", "--health-check"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 15s
     restart: unless-stopped
     deploy:
       resources:
