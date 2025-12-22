@@ -11,6 +11,9 @@ class Settins(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: str
     POSTGRES_DB: str
+    MEILI_HOST: str = "meilisearch"
+    MEILI_PORT: str = "7700"
+    MEILI_MASTER_KEY: str = ""
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(__file__), ".env"))

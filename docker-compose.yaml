@@ -5,6 +5,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      meilisearch:
+        condition: service_healthy
     networks:
       - default
   postgres:
@@ -38,9 +40,29 @@ services:
       - ./postgresus-data:/postgresus-data
     restart: unless-stopped
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    env_file: .env
+    environment:
+      - MEILI_ENV=development
+    volumes:
+      - meilisearch-data:/meili_data
+    ports:
+      - "7700:7700"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - default
+
 volumes:
   postgres-data:
   postgresus-data:
+  meilisearch-data:
 
 networks:
   default:

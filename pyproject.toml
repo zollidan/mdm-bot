@@ -8,6 +8,7 @@ dependencies = [
     "aiogram>=3.20.0.post0",
     "art>=6.5",
     "asyncpg>=0.30.0",
+    "meilisearch>=0.31.0",
     "pydantic-settings>=2.9.1",
     "sqlalchemy[asyncio]>=2.0.40",
 ]

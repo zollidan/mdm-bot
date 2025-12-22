@@ -16,6 +16,7 @@ from database import AsyncSessionFactory, create_tables
 from kbs import *
 from config import settings
 from utils import *
+from meilisearch_client import get_meili_client
 
 """
 ✅ F.data == "main_page" - Обработчик главной страницы
@@ -240,16 +241,23 @@ async def process_vendor_code_search(message: Message, state: FSMContext) -> Non
 async def process_name_search(message: Message, state: FSMContext) -> None:
     user_id = message.from_user.id
     search_term = message.text
-    
+
     await state.clear()  # Очищаем состояние после получения данных
-    
+
     async with AsyncSessionFactory() as session:
         logger.info(f"User {user_id} search by name: {search_term}")
         try:
-            # Поиск по частичному совпадению с названием
-            stmt = select(Product).where(Product.name.ilike(f"%{search_term}%")).limit(5)
-            result = await session.execute(stmt)
-            products = result.scalars().all()
+            # Поиск через Meilisearch
+            meili = await get_meili_client()
+            product_ids = meili.search_products(search_term, limit=5)
+
+            # Получаем полные данные товаров из PostgreSQL
+            if product_ids:
+                stmt = select(Product).where(Product.id.in_(product_ids))
+                result = await session.execute(stmt)
+                products = result.scalars().all()
+            else:
+                products = []
             
             if not products:
                 # Улучшенное сообщение об отсутствии товаров
@@ -1263,8 +1271,19 @@ async def help_page(callback: CallbackQuery):
 
 async def main() -> None:
     await create_tables()
+
+    # Инициализация и синхронизация Meilisearch
+    logger.info("Initializing Meilisearch...")
+    try:
+        meili = await get_meili_client()
+        await meili.sync_products()
+        logger.info("Meilisearch initialized and synced successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Meilisearch: {e}")
+        logger.warning("Bot will start without Meilisearch integration")
+
     bot = Bot(token=settings.BOT_TOKEN)
-    
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
