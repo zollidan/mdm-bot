@@ -14,6 +14,7 @@ class Settins(BaseSettings):
     MEILI_HOST: str = "meilisearch"
     MEILI_PORT: str = "7700"
     MEILI_MASTER_KEY: str = ""
+    MEILI_ENV: str = "development"
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(__file__), ".env"))

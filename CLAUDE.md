@@ -8,21 +8,28 @@ MDM Bot is a Telegram e-commerce bot for a store catalog built with Python 3.10+
 
 **Architecture Stack:**
 - `aiogram 3.x` - Async Telegram bot framework with polling
-- `SQLAlchemy` (sync) - Database ORM with declarative models  
-- `SQLite` (dev) / PostgreSQL (production) - Database layer
+- `SQLAlchemy` (async) - Database ORM with declarative models
+- `PostgreSQL` (production) / SQLite (legacy) - Database layer
+- `MeiliSearch` - Full-text search engine for products
 - `pydantic-settings` - Configuration management via `.env`
 
 ## Key Commands
 
 **Development:**
-- `python main.py` - Start the bot
+- `docker-compose up -d` - Start all services (bot, PostgreSQL, MeiliSearch)
+- `docker-compose logs -f bot` - View bot logs
+- `python main.py` - Start bot locally (requires PostgreSQL + MeiliSearch running)
 - `python convert.py` - Import products from CSV (`old_db_lite.csv`)
-- `docker-compose up -d` - Start PostgreSQL container
-- Setup: Create `.env` with `BOT_TOKEN=your_bot_token`
+
+**Production:**
+- `cp .env.production .env` - Use production environment template
+- `docker-compose up -d` - Deploy all services
+- See [DEPLOYMENT.md](DEPLOYMENT.md) for complete production guide
 
 **Dependencies:**
-- `pip install -e .` or `pip install aiogram art asyncpg psycopg2 pydantic-settings "sqlalchemy[asyncio]"`
+- `pip install -e .` or `uv sync --locked` (recommended)
 - Python 3.10+ required
+- Docker & Docker Compose for containerized deployment
 
 ## Core Architecture
 
@@ -50,9 +57,16 @@ MDM Bot is a Telegram e-commerce bot for a store catalog built with Python 3.10+
 ## Important Implementation Details
 
 **Database Configuration:**
-- Development: SQLite (`sqlite:///test.db`)
 - Production: PostgreSQL via environment variables in `database.py`
-- Session management uses synchronous SQLAlchemy with `Session()` context managers
+- Connection uses async SQLAlchemy with `AsyncSession` and `asyncpg` driver
+- Session factory: `AsyncSessionFactory` from `database.py`
+- Auto-creates tables on startup via `create_tables()` function
+
+**MeiliSearch Integration:**
+- Client initialization in search-related modules
+- Product indexing for fast full-text search
+- Configuration via `MEILI_HOST`, `MEILI_PORT`, `MEILI_MASTER_KEY` environment variables
+- See recent commit (58b020a) for MeiliSearch client implementation
 
 **Bot Handler Patterns:**
 - Handlers use `@dp.callback_query(F.data == "action")` for button callbacks
@@ -67,23 +81,43 @@ MDM Bot is a Telegram e-commerce bot for a store catalog built with Python 3.10+
 
 ## Development Notes
 
-**Database Switching:**
-- Comment/uncomment lines in `database.py` to switch between SQLite and PostgreSQL
-- PostgreSQL settings configured via docker-compose.yaml
+**Environment Configuration:**
+- Development: Copy `.env.example` to `.env` and configure
+- Production: Copy `.env.production` to `.env` with secure credentials
+- Key variables: `BOT_TOKEN`, `POSTGRES_*`, `MEILI_HOST`, `MEILI_MASTER_KEY`
+- Docker services use internal hostnames: `postgres`, `meilisearch`
 
 **CSV Import:**
 - Place `old_db_lite.csv` in project root with semicolon delimiter
 - Run `python convert.py` to seed database with products
+- Docker: `docker-compose exec bot uv run convert.py`
 
-**Bot Token Setup:**
-- Copy `.env.example` to `.env` (if exists) or create with `BOT_TOKEN=your_token`
-- Bot runs in polling mode, no webhook setup needed
+**Bot Configuration:**
+- Runs in polling mode (no webhook setup needed)
+- Logging configured to `mdm.log` file with INFO level
+- Restart policy: `unless-stopped` in production
+
+**Docker Services:**
+- `bot` - Main Telegram bot (depends on postgres + meilisearch)
+- `postgres` - PostgreSQL 16 Alpine with health checks
+- `meilisearch` - Search engine v1.10 with production mode
+- `postgresus` - PostgreSQL admin UI on port 4005
+
+**Resource Limits (Production):**
+- Bot: 1 CPU, 512MB RAM
+- PostgreSQL: 1 CPU, 4GB RAM
+- MeiliSearch: 0.5 CPU, 1GB RAM
 
 **Error Handling:**
 - Most handlers have try/catch blocks with user-friendly error messages
-- Logging configured to `mdm.log` file with INFO level
+- Health checks ensure services are ready before bot starts
 
 **Known Issues (from PLAN.md):**
-- Some import statements and callback patterns need alignment
 - Profile validation is basic (regex for phone numbers)
 - No quantity controls in cart (MVP scope limitation)
+
+**Security Notes:**
+- Use strong passwords for `POSTGRES_PASSWORD` (random string recommended)
+- `MEILI_MASTER_KEY` must be minimum 16 characters
+- Never commit `.env` files (already in .gitignore)
+- In production, close external access to database and search ports

@@ -1,7 +1,11 @@
 .env
+.env.local
 *.log
 *.db
 __pycache__
 .ruff_cache
 .venv
 *.csv
+docker-compose.override.yml
+postgresus-data/
+backups/
