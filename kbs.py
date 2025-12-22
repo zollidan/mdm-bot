@@ -1,14 +1,20 @@
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 
 from models import Favorite, CartItem
+from config import settings
 
 # MARK: kbs
 
 
 def main_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
+
+    # Web App кнопка для просмотра каталога
+    webapp_url = getattr(settings, 'WEBAPP_URL', 'https://your-domain.com')
+    kb.button(text="🛍️ Открыть каталог", web_app=WebAppInfo(url=webapp_url))
+
     kb.button(text="Поиск", callback_data="search")
     kb.button(text="Моя корзина", callback_data="cart")
     kb.button(text="Избранное", callback_data="favorites")

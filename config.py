@@ -15,6 +15,8 @@ class Settins(BaseSettings):
     MEILI_PORT: str = "7700"
     MEILI_MASTER_KEY: str = ""
     MEILI_ENV: str = "development"
+    WEBAPP_URL: str = "http://localhost:8000"
+    ALLOWED_ORIGINS: str = "*"  # Comma-separated list for production
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(__file__), ".env"))

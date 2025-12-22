@@ -9,3 +9,9 @@ __pycache__
 docker-compose.override.yml
 postgresus-data/
 backups/
+
+# Webapp
+webapp/node_modules/
+webapp/dist/
+webapp/.env
+webapp/.env.local
