@@ -66,9 +66,9 @@ services:
     ports:
       - "80:80"
       - "443:443" # For HTTPS (requires SSL cert configuration)
-    depends_on:
-      api:
-        condition: service_healthy
+    # depends_on:
+    #   api:
+    #     condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:
