@@ -174,4 +174,3 @@ networks:
     driver: bridge
   backend:
     driver: bridge
-    internal: true # Backend network isolated from external access
