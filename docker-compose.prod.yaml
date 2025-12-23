@@ -65,7 +65,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:80"
-      - "443:443"  # For HTTPS (requires SSL cert configuration)
+      - "443:443" # For HTTPS (requires SSL cert configuration)
     depends_on:
       api:
         condition: service_healthy
@@ -77,6 +77,9 @@ services:
           memory: 256M
     networks:
       - frontend
+    volumes:
+      - /etc/letsencrypt/live/mdm-bot.duckdns.org/fullchain.pem:/etc/nginx/ssl/cert.pem:ro
+      - /etc/letsencrypt/live/mdm-bot.duckdns.org/privkey.pem:/etc/nginx/ssl/key.pem:ro
     logging:
       driver: "json-file"
       options:
@@ -95,7 +98,7 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./backups:/backups  # For database backups
+      - ./backups:/backups # For database backups
     # Don't expose port in production (only internal access)
     # ports:
     #   - "5432:5432"
@@ -147,7 +150,15 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:7700/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -163,4 +174,4 @@ networks:
     driver: bridge
   backend:
     driver: bridge
-    internal: true  # Backend network isolated from external access
+    internal: true # Backend network isolated from external access
