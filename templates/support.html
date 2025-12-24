@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>mdm bot — поддержка</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: #fffef9;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .neo-shadow {
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      }
+
+      .neo-shadow-sm {
+        box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+      }
+
+      .neo-press:active {
+        transform: translate(2px, 2px);
+        box-shadow: none;
+      }
+
+      .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+      }
+
+      .faq-item.active .faq-answer {
+        max-height: 200px;
+        margin-top: 1rem;
+      }
+
+      .faq-item.active .faq-icon {
+        transform: rotate(45deg);
+      }
+    </style>
+  </head>
+  <body class="text-black antialiased">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 p-4">
+      <nav
+        class="flex items-center justify-between bg-white border-2 border-black rounded-2xl p-4 neo-shadow"
+      >
+        <a href="/" class="flex items-center gap-2 neo-press">
+          <div
+            class="w-8 h-8 bg-[#FCD34D] border-2 border-black rounded-lg flex items-center justify-center font-extrabold text-sm"
+          >
+            ←
+          </div>
+          <h1 class="text-xl font-extrabold tracking-tight">помощь</h1>
+        </a>
+        <div
+          class="w-10 h-10 bg-white border-2 border-black rounded-full flex items-center justify-center font-black"
+        >
+          ?
+        </div>
+      </nav>
+    </header>
+
+    <main class="p-4 space-y-6 pb-20">
+      <!-- Hero Section -->
+      <section
+        class="bg-white border-2 border-black rounded-3xl p-6 neo-shadow space-y-2"
+      >
+        <h2 class="text-3xl font-extrabold lowercase leading-none">
+          есть вопросы? <br /><span class="text-[#FCD34D] bg-black px-2"
+            >мы поможем.</span
+          >
+        </h2>
+        <p class="font-bold opacity-70">
+          Найди ответ ниже или напиши нам напрямую — мы отвечаем в течение 15
+          минут.
+        </p>
+      </section>
+
+      <!-- Status Indicator -->
+      <section
+        class="flex items-center justify-between p-4 bg-green-50 border-2 border-black rounded-2xl"
+      >
+        <div class="flex items-center gap-3">
+          <span class="relative flex h-3 w-3">
+            <span
+              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+            ></span>
+            <span
+              class="relative inline-flex rounded-full h-3 w-3 bg-green-500"
+            ></span>
+          </span>
+          <span class="font-extrabold text-sm uppercase"
+            >сервис работает штатно</span
+          >
+        </div>
+        <span class="text-xs font-bold opacity-40">v.1.0.4</span>
+      </section>
+
+      <!-- FAQ Section -->
+      <section class="space-y-4">
+        <h3 class="text-xl font-extrabold lowercase ml-2">частые вопросы</h3>
+
+        <div class="space-y-3">
+          <!-- FAQ Item 1 -->
+          <div
+            class="faq-item bg-white border-2 border-black rounded-2xl p-4 neo-shadow-sm cursor-pointer transition-all"
+            onclick="toggleFAQ(this)"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg leading-tight"
+                >Как отследить мой заказ?</span
+              >
+              <div
+                class="faq-icon w-6 h-6 border-2 border-black rounded-md flex items-center justify-center font-black transition-transform"
+              >
+                +
+              </div>
+            </div>
+            <div class="faq-answer">
+              <p class="text-sm font-bold opacity-60">
+                После оплаты бот пришлет вам трек-номер. Вы также можете найти
+                его в разделе "Мои заказы" в главном меню.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 2 -->
+          <div
+            class="faq-item bg-white border-2 border-black rounded-2xl p-4 neo-shadow-sm cursor-pointer transition-all"
+            onclick="toggleFAQ(this)"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg leading-tight"
+                >Какие сроки доставки?</span
+              >
+              <div
+                class="faq-icon w-6 h-6 border-2 border-black rounded-md flex items-center justify-center font-black transition-transform"
+              >
+                +
+              </div>
+            </div>
+            <div class="faq-answer">
+              <p class="text-sm font-bold opacity-60">
+                Обычно доставка занимает от 3 до 7 рабочих дней в зависимости от
+                вашего региона.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 3 -->
+          <div
+            class="faq-item bg-white border-2 border-black rounded-2xl p-4 neo-shadow-sm cursor-pointer transition-all"
+            onclick="toggleFAQ(this)"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg leading-tight"
+                >Как сделать возврат?</span
+              >
+              <div
+                class="faq-icon w-6 h-6 border-2 border-black rounded-md flex items-center justify-center font-black transition-transform"
+              >
+                +
+              </div>
+            </div>
+            <div class="faq-answer">
+              <p class="text-sm font-bold opacity-60">
+                Свяжитесь с поддержкой в течение 14 дней после получения товара.
+                Товар должен сохранить товарный вид.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Message Form -->
+      <section
+        class="bg-[#FCD34D] border-2 border-black rounded-3xl p-6 neo-shadow space-y-4"
+      >
+        <h3 class="text-xl font-extrabold lowercase">написать нам</h3>
+        <form
+          id="support-form"
+          class="space-y-3"
+          onsubmit="handleSupportSubmit(event)"
+        >
+          <div class="space-y-1">
+            <label class="text-xs font-black uppercase ml-1"
+              >ваше сообщение</label
+            >
+            <textarea
+              required
+              placeholder="опишите проблему..."
+              rows="3"
+              class="w-full p-4 bg-white border-2 border-black rounded-2xl font-bold focus:outline-none focus:ring-2 focus:ring-black transition-all"
+            ></textarea>
+          </div>
+          <button
+            type="submit"
+            class="w-full py-4 bg-black text-white border-2 border-black rounded-2xl font-extrabold text-lg neo-press uppercase tracking-tight"
+          >
+            отправить тикет
+          </button>
+        </form>
+      </section>
+
+      <!-- Direct Contact Grid -->
+      <section class="grid grid-cols-2 gap-4">
+        <a
+          href="https://t.me/your_manager"
+          class="bg-white border-2 border-black rounded-2xl p-4 neo-shadow neo-press flex flex-col items-center gap-2 text-center"
+        >
+          <div class="text-3xl">💬</div>
+          <span class="font-extrabold text-sm uppercase">telegram</span>
+        </a>
+        <a
+          href="mailto:support@mdm.com"
+          class="bg-white border-2 border-black rounded-2xl p-4 neo-shadow neo-press flex flex-col items-center gap-2 text-center"
+        >
+          <div class="text-3xl">✉️</div>
+          <span class="font-extrabold text-sm uppercase">email</span>
+        </a>
+      </section>
+    </main>
+
+    <!-- Success Modal -->
+    <div
+      id="success-modal"
+      class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+    >
+      <div
+        class="bg-white border-4 border-black rounded-3xl p-8 neo-shadow max-w-xs w-full text-center space-y-6"
+      >
+        <div class="text-6xl animate-bounce">🚀</div>
+        <div class="space-y-2">
+          <h4 class="text-2xl font-black lowercase">отправлено!</h4>
+          <p class="font-bold opacity-60">
+            Менеджер свяжется с вами в ближайшее время.
+          </p>
+        </div>
+        <button
+          onclick="closeModal()"
+          class="w-full py-4 bg-[#FCD34D] border-2 border-black rounded-2xl font-black uppercase neo-press"
+        >
+          понятно
+        </button>
+      </div>
+    </div>
+
+    <script>
+      function toggleFAQ(element) {
+        // Закрыть все остальные
+        document.querySelectorAll(".faq-item").forEach((item) => {
+          if (item !== element) item.classList.remove("active");
+        });
+        // Переключить текущий
+        element.classList.toggle("active");
+
+        // Haptic Feedback
+        if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
+      }
+
+      function handleSupportSubmit(event) {
+        event.preventDefault();
+        const btn = event.target.querySelector("button");
+        const originalText = btn.innerText;
+
+        // Имитация загрузки
+        btn.disabled = true;
+        btn.innerText = "ОТПРАВЛЯЕМ...";
+
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerText = originalText;
+          event.target.reset();
+
+          // Показать модалку
+          const modal = document.getElementById("success-modal");
+          modal.classList.remove("hidden");
+          modal.classList.add("flex");
+
+          if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred(
+              "success"
+            );
+          }
+        }, 1200);
+      }
+
+      function closeModal() {
+        const modal = document.getElementById("success-modal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      // Инициализация Telegram WebApp если доступно
+      if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+      }
+    </script>
+  </body>
+</html>

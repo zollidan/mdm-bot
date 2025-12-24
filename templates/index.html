@@ -1,257 +1,243 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>mdm bot — главная</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: #fffef9;
+        -webkit-tap-highlight-color: transparent;
+      }
 
-{% block title %}Главная - MDM Bot{% endblock %}
+      .neo-shadow {
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      }
 
-{% block extra_css %}
-<style>
-    .hero {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 60px 40px;
-        border-radius: 12px;
-        text-align: center;
-        margin-bottom: 40px;
-        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-    }
+      .neo-shadow-sm {
+        box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+      }
 
-    .hero h2 {
-        font-size: 42px;
-        margin-bottom: 20px;
-        font-weight: 700;
-    }
+      .neo-press:active {
+        transform: translate(2px, 2px);
+        box-shadow: none;
+      }
 
-    .hero p {
-        font-size: 18px;
-        opacity: 0.9;
-        max-width: 600px;
-        margin: 0 auto 30px;
-    }
+      .neo-hover:hover {
+        transform: translate(2px, 2px);
+        box-shadow: none;
+      }
 
-    .hero-buttons {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .btn {
-        padding: 15px 30px;
-        border: none;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .btn-white {
-        background: white;
-        color: #667eea;
-    }
-
-    .btn-white:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-    }
-
-    .btn-outline {
-        background: transparent;
-        color: white;
-        border: 2px solid white;
-    }
-
-    .btn-outline:hover {
-        background: white;
-        color: #667eea;
-    }
-
-    .features {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 25px;
-        margin: 40px 0;
-    }
-
-    .feature-card {
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        text-align: center;
-        transition: transform 0.3s;
-    }
-
-    .feature-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .feature-icon {
-        font-size: 48px;
-        margin-bottom: 15px;
-    }
-
-    .feature-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 10px;
-    }
-
-    .feature-description {
-        color: #7f8c8d;
-        line-height: 1.6;
-    }
-
-    .stats-section {
-        background: white;
-        padding: 40px;
-        border-radius: 8px;
-        margin: 40px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 30px;
-        text-align: center;
-    }
-
-    .stat-item {
-        padding: 20px;
-    }
-
-    .stat-value {
-        font-size: 36px;
-        font-weight: 700;
-        color: #3498db;
-        margin-bottom: 5px;
-    }
-
-    .stat-label {
-        color: #7f8c8d;
-        font-size: 14px;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div id="app">
-    <div class="hero">
-        <h2>🛍️ Добро пожаловать в MDM Bot</h2>
-        <p>Ваш надежный помощник для покупок в Telegram. Быстрый поиск, удобный каталог и простое оформление заказов.</p>
-        <div class="hero-buttons">
-            <a href="/products" class="btn btn-white">📦 Открыть каталог</a>
-            <a href="/api/docs" class="btn btn-outline" target="_blank">📚 API Документация</a>
+      /* Custom scrollbar for neo-brutalism */
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #fffef9;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #000;
+        border: 2px solid #fffef9;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body class="text-black antialiased selection:bg-[#FCD34D]">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 p-4">
+      <nav
+        class="flex items-center justify-between bg-white border-2 border-black rounded-2xl p-4 neo-shadow"
+      >
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 bg-[#FCD34D] border-2 border-black rounded-lg flex items-center justify-center font-extrabold"
+          >
+            m
+          </div>
+          <h1 class="text-xl font-extrabold tracking-tight">mdm bot</h1>
         </div>
-    </div>
+        <div
+          id="api-status"
+          class="flex items-center gap-2 px-3 py-1 bg-green-100 border-2 border-black rounded-full text-xs font-bold"
+        >
+          <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          ONLINE
+        </div>
+      </nav>
+    </header>
 
-    <div class="features">
-        <div class="feature-card">
-            <div class="feature-icon">🔍</div>
-            <div class="feature-title">Быстрый поиск</div>
-            <div class="feature-description">
-                Найдите нужный товар по названию или артикулу за секунды
-            </div>
+    <main class="p-4 space-y-8">
+      <!-- Hero Section -->
+      <section
+        class="bg-[#FCD34D] border-2 border-black rounded-3xl p-6 neo-shadow space-y-4"
+      >
+        <h2 class="text-4xl font-extrabold leading-none lowercase italic">
+          твой новый уровень шоппинга
+        </h2>
+        <p class="text-lg font-bold opacity-80">
+          Лучшие товары прямо внутри твоего Telegram. Быстро, стильно, надежно.
+        </p>
+        <a
+          href="/products"
+          class="inline-block w-full py-4 bg-white border-2 border-black rounded-2xl text-center font-extrabold text-xl neo-shadow neo-press transition-all"
+        >
+          открыть каталог ↗
+        </a>
+      </section>
+
+      <!-- Stats Grid -->
+      <section class="grid grid-cols-2 gap-4">
+        <div class="bg-white border-2 border-black rounded-2xl p-4 neo-shadow">
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+            доставка
+          </p>
+          <p class="text-2xl font-black">24/7</p>
+        </div>
+        <div class="bg-white border-2 border-black rounded-2xl p-4 neo-shadow">
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+            поддержка
+          </p>
+          <p class="text-2xl font-black">LIVE</p>
+        </div>
+      </section>
+
+      <!-- Featured Products (Dynamic Preview) -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-2xl font-extrabold lowercase">новинки</h3>
+          <a href="/products" class="text-sm font-bold border-b-2 border-black"
+            >смотреть все</a
+          >
         </div>
 
-        <div class="feature-card">
-            <div class="feature-icon">🛒</div>
-            <div class="feature-title">Корзина покупок</div>
-            <div class="feature-description">
-                Добавляйте товары в корзину и оформляйте заказ в несколько кликов
-            </div>
+        <!-- Skeleton Loader / Container -->
+        <div id="featured-products" class="grid grid-cols-1 gap-6">
+          <div
+            class="animate-pulse bg-white border-2 border-black rounded-2xl p-4 h-32 flex items-center justify-center"
+          >
+            <span class="font-bold opacity-20 italic text-xl"
+              >Загружаем стильные вещи...</span
+            >
+          </div>
         </div>
+      </section>
 
-        <div class="feature-card">
-            <div class="feature-icon">⭐</div>
-            <div class="feature-title">Избранное</div>
-            <div class="feature-description">
-                Сохраняйте понравившиеся товары для быстрого доступа
-            </div>
+      <!-- Footer / Contact -->
+      <footer class="bg-black text-white rounded-3xl p-8 space-y-6">
+        <div class="space-y-2">
+          <p class="text-3xl font-extrabold lowercase italic">
+            остались вопросы?
+          </p>
+          <p class="text-gray-400 font-bold leading-relaxed">
+            Напиши нашему менеджеру в одно касание. Мы всегда на связи.
+          </p>
         </div>
-
-        <div class="feature-card">
-            <div class="feature-icon">📦</div>
-            <div class="feature-title">История заказов</div>
-            <div class="feature-description">
-                Отслеживайте статус ваших заказов в личном кабинете
-            </div>
+        <button
+          class="w-full py-4 bg-[#FCD34D] text-black border-2 border-white rounded-2xl font-extrabold text-lg neo-press"
+        >
+          <a href="/support">написать в поддержку</a>
+        </button>
+        <div
+          class="pt-4 border-t border-white/20 text-center text-xs text-gray-500 font-bold uppercase tracking-widest"
+        >
+          v1.0.0 — mdm digital systems
         </div>
+      </footer>
+    </main>
 
-        <div class="feature-card">
-            <div class="feature-icon">👤</div>
-            <div class="feature-title">Профиль</div>
-            <div class="feature-description">
-                Управляйте своими данными и адресами доставки
-            </div>
-        </div>
+    <!-- JS Logic -->
+    <script>
+      async function fetchFeaturedProducts() {
+        const container = document.getElementById("featured-products");
+        try {
+          // Запрос к вашему эндпоинту API /api/products
+          const response = await fetch("/api/products?limit=3");
+          const data = await response.json();
 
-        <div class="feature-card">
-            <div class="feature-icon">💬</div>
-            <div class="feature-title">Поддержка 24/7</div>
-            <div class="feature-description">
-                Получайте помощь от нашего бота в любое время
-            </div>
-        </div>
-    </div>
-
-    <div v-if="!loading" class="stats-section">
-        <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">📊 Статистика магазина</h3>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-value">{{ totalProducts }}</div>
-                <div class="stat-label">Товаров в каталоге</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">24/7</div>
-                <div class="stat-label">Работаем для вас</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">⚡</div>
-                <div class="stat-label">Быстрая доставка</div>
-            </div>
-        </div>
-    </div>
-
-    <div v-if="loading" class="loading">
-        ⏳ Загрузка данных...
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-const { createApp } = Vue;
-
-createApp({
-    data() {
-        return {
-            totalProducts: 0,
-            loading: true
+          if (data.items && data.items.length > 0) {
+            container.innerHTML = data.items
+              .map(
+                (product) => `
+                        <div class="bg-white border-2 border-black rounded-2xl overflow-hidden neo-shadow flex group">
+                            <div class="w-1/3 border-r-2 border-black bg-gray-100 flex items-center justify-center overflow-hidden">
+                                ${
+                                  product.image
+                                    ? `<img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">`
+                                    : `<span class="text-4xl">📦</span>`
+                                }
+                            </div>
+                            <div class="p-4 flex flex-col justify-between flex-1">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter mb-1">
+                                        art: ${product.vendor_code || "N/A"}
+                                    </p>
+                                    <h4 class="text-lg font-extrabold leading-tight mb-2">${
+                                      product.name
+                                    }</h4>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xl font-black">${product.price.toLocaleString()} ₽</span>
+                                    <a href="/products/${
+                                      product.id
+                                    }" class="w-10 h-10 bg-[#FCD34D] border-2 border-black rounded-full flex items-center justify-center neo-shadow-sm neo-press text-xl">
+                                        →
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `
+              )
+              .join("");
+          } else {
+            container.innerHTML = `
+                        <div class="bg-white border-2 border-black rounded-2xl p-8 text-center neo-shadow">
+                            <p class="font-bold opacity-50 italic">Склад пуст, но скоро здесь будет жарко 🔥</p>
+                        </div>
+                    `;
+          }
+        } catch (error) {
+          console.error("Ошибка загрузки:", error);
+          container.innerHTML = `
+                    <div class="bg-red-50 border-2 border-black rounded-2xl p-4 neo-shadow">
+                        <p class="font-bold text-red-600">Ошибка связи с базой. Проверь интернет!</p>
+                    </div>
+                `;
+          document.getElementById("api-status").className =
+            "flex items-center gap-2 px-3 py-1 bg-red-100 border-2 border-black rounded-full text-xs font-bold";
+          document.getElementById("api-status").innerHTML =
+            '<span class="w-2 h-2 bg-red-500 rounded-full"></span> OFFLINE';
         }
-    },
-    methods: {
-        async fetchStats() {
-            try {
-                const response = await fetch('/api/products?page=1&limit=1');
-                if (response.ok) {
-                    const data = await response.json();
-                    this.totalProducts = data.total;
-                }
-            } catch (err) {
-                console.error('Ошибка загрузки статистики:', err);
-            } finally {
-                this.loading = false;
-            }
+      }
+
+      // Простая проверка здоровья API
+      async function checkHealth() {
+        try {
+          const res = await fetch("/api/health");
+          if (!res.ok) throw new Error();
+        } catch {
+          const status = document.getElementById("api-status");
+          status.className =
+            "flex items-center gap-2 px-3 py-1 bg-red-100 border-2 border-black rounded-full text-xs font-bold";
+          status.innerHTML =
+            '<span class="w-2 h-2 bg-red-500 rounded-full"></span> ERROR';
         }
-    },
-    mounted() {
-        this.fetchStats();
-    }
-}).mount('#app');
-</script>
-{% endblock %}
+      }
+
+      window.onload = () => {
+        fetchFeaturedProducts();
+        checkHealth();
+      };
+    </script>
+  </body>
+</html>

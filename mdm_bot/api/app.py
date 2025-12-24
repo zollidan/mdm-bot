@@ -2,6 +2,7 @@
 FastAPI server for Telegram Mini App API endpoints
 """
 import math
+import logging
 from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,13 +11,36 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import select, func
 from typing import List, Optional
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 
 from mdm_bot.core import AsyncSessionFactory, Product, settings
+from mdm_bot.core.search import get_meili_client
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize MeiliSearch on startup"""
+    logger.info("Starting FastAPI application...")
+
+    try:
+        # Initialize MeiliSearch client and sync products
+        meili = await get_meili_client()
+        await meili.sync_products()
+        logger.info("MeiliSearch initialized and synced successfully")
+    except Exception as e:
+        logger.warning(f"MeiliSearch initialization failed (will work without search): {e}")
+
+    yield
+
+    logger.info("Shutting down FastAPI application...")
 
 
 app = FastAPI(
     title="MDM Bot API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Setup Jinja2 templates
@@ -58,6 +82,12 @@ class ProductsListResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class SearchResponse(BaseModel):
+    items: List[ProductResponse]
+    total: int
+    query: str
 
 
 @app.get("/api/products", response_model=ProductsListResponse)
@@ -120,6 +150,42 @@ async def get_product(product_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
 
 
+@app.get("/api/search", response_model=SearchResponse)
+async def search_products(
+    q: str = Query(..., min_length=1, description="Поисковый запрос"),
+    limit: int = Query(20, ge=1, le=100, description="Максимум результатов")
+):
+    """Search products using MeiliSearch"""
+    try:
+        # Get MeiliSearch client
+        meili = await get_meili_client()
+
+        # Search for product IDs
+        product_ids = meili.search_products(q, limit=limit)
+
+        if not product_ids:
+            return SearchResponse(items=[], total=0, query=q)
+
+        # Fetch products from database
+        async with AsyncSessionFactory() as session:
+            query = select(Product).where(Product.id.in_(product_ids))
+            result = await session.execute(query)
+            products = result.scalars().all()
+
+            # Sort by the order from MeiliSearch
+            products_dict = {p.id: p for p in products}
+            sorted_products = [products_dict[pid] for pid in product_ids if pid in products_dict]
+
+            return SearchResponse(
+                items=[ProductResponse.model_validate(p) for p in sorted_products],
+                total=len(sorted_products),
+                query=q
+            )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка поиска: {str(e)}")
+
+
 @app.get("/api/health")
 async def health_check():
     """API health check endpoint"""
@@ -147,7 +213,16 @@ async def product_detail_page(request: Request, product_id: int):
         {
             "request": request,
             "product_id": product_id,
-            "product": None  # Product will be loaded via Vue.js
+            "product": None 
+        }
+    )
+    
+@app.get("/support", response_class=HTMLResponse)
+async def support_page(request: Request):
+    return templates.TemplateResponse(
+        "support.html",
+        {
+            "request": request
         }
     )
 

@@ -1,265 +1,315 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>mdm bot — каталог</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: #fffef9;
+        -webkit-tap-highlight-color: transparent;
+      }
 
-{% block title %}Каталог товаров - MDM Bot{% endblock %}
+      .neo-shadow {
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      }
 
-{% block extra_css %}
-<style>
-    .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-    }
+      .neo-shadow-sm {
+        box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+      }
 
-    .product-card {
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
-        cursor: pointer;
-    }
+      .neo-press:active {
+        transform: translate(2px, 2px);
+        box-shadow: none;
+      }
 
-    .product-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .product-image {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        background: #ecf0f1;
-    }
-
-    .product-info {
-        padding: 15px;
-    }
-
-    .product-name {
-        font-weight: 600;
-        margin-bottom: 8px;
-        font-size: 16px;
-        color: #2c3e50;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .product-code {
-        color: #7f8c8d;
-        font-size: 12px;
-        margin-bottom: 8px;
-    }
-
-    .product-price {
-        font-size: 20px;
-        font-weight: 700;
-        color: #27ae60;
-        margin-top: 10px;
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        margin: 30px 0;
-    }
-
-    .pagination button {
-        padding: 10px 20px;
-        border: 1px solid #3498db;
-        background: white;
-        color: #3498db;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .pagination button:hover:not(:disabled) {
-        background: #3498db;
-        color: white;
-    }
-
-    .pagination button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .pagination .page-info {
-        padding: 10px 20px;
-        color: #7f8c8d;
-    }
-
-    .search-box {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .search-box input {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-
-    .stats {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-align: center;
-        color: #7f8c8d;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div id="app">
-    <div class="stats">
-        <p v-if="!loading">Всего товаров: {{ totalProducts }} | Страница {{ currentPage }} из {{ totalPages }}</p>
-    </div>
-
-    <div class="search-box">
-        <input
-            type="text"
-            v-model="searchQuery"
-            @input="debounceSearch"
-            placeholder="🔍 Поиск товаров по названию или артикулу..."
-        >
-    </div>
-
-    <div v-if="loading" class="loading">
-        ⏳ Загрузка товаров...
-    </div>
-
-    <div v-if="error" class="error">
-        ❌ {{ error }}
-    </div>
-
-    <div v-if="!loading && !error" class="products-grid">
+      /* Анимация появления карточек */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+    </style>
+  </head>
+  <body class="text-black antialiased">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 p-4">
+      <nav
+        class="flex items-center justify-between bg-white border-2 border-black rounded-2xl p-4 neo-shadow"
+      >
+        <a href="/" class="flex items-center gap-2 neo-press">
+          <div
+            class="w-8 h-8 bg-[#FCD34D] border-2 border-black rounded-lg flex items-center justify-center font-extrabold text-sm"
+          >
+            ←
+          </div>
+          <h1 class="text-xl font-extrabold tracking-tight">каталог</h1>
+        </a>
         <div
-            v-for="product in products"
-            :key="product.id"
-            class="product-card"
-            @click="openProduct(product.id)"
+          id="cart-counter"
+          class="bg-black text-white px-3 py-1 rounded-full text-xs font-bold"
         >
-            <img
-                :src="product.image || '/static/img/placeholder.png'"
-                :alt="product.name"
-                class="product-image"
-                @error="handleImageError"
-            >
-            <div class="product-info">
-                <div class="product-code" v-if="product.vendor_code">
-                    Артикул: {{ product.vendor_code }}
-                </div>
-                <div class="product-name">{{ product.name }}</div>
-                <div class="product-price">{{ formatPrice(product.price) }} ₽</div>
-            </div>
+          0 ТОВАРОВ
         </div>
-    </div>
+      </nav>
+    </header>
 
-    <div v-if="!loading && products.length === 0 && !error" class="loading">
-        Товары не найдены
-    </div>
+    <main class="p-4 space-y-6">
+      <!-- Search & Filter Bar -->
+      <section class="space-y-3">
+        <div class="relative">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="поиск по названию..."
+            class="w-full p-4 bg-white border-2 border-black rounded-2xl font-bold placeholder:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#FCD34D] transition-all"
+          />
+          <div
+            class="absolute right-4 top-1/2 -translate-y-1/2 font-black text-xl"
+          >
+            🔍
+          </div>
+        </div>
 
-    <div v-if="!loading && totalPages > 1" class="pagination">
-        <button @click="prevPage" :disabled="currentPage === 1">
-            ← Назад
-        </button>
-        <span class="page-info">Страница {{ currentPage }} из {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="currentPage === totalPages">
-            Вперёд →
-        </button>
-    </div>
-</div>
-{% endblock %}
+        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          <button
+            class="px-4 py-2 bg-[#FCD34D] border-2 border-black rounded-xl font-extrabold text-sm whitespace-nowrap neo-press"
+          >
+            все
+          </button>
+          <button
+            class="px-4 py-2 bg-white border-2 border-black rounded-xl font-extrabold text-sm whitespace-nowrap neo-press opacity-50"
+          >
+            одежда
+          </button>
+          <button
+            class="px-4 py-2 bg-white border-2 border-black rounded-xl font-extrabold text-sm whitespace-nowrap neo-press opacity-50"
+          >
+            обувь
+          </button>
+          <button
+            class="px-4 py-2 bg-white border-2 border-black rounded-xl font-extrabold text-sm whitespace-nowrap neo-press opacity-50"
+          >
+            аксессуары
+          </button>
+        </div>
+      </section>
 
-{% block extra_js %}
-<script>
-const { createApp } = Vue;
+      <!-- Product Grid -->
+      <div id="products-grid" class="grid grid-cols-2 gap-4">
+        <!-- Здесь будут товары -->
+        <div class="col-span-2 py-20 text-center animate-pulse">
+          <p class="font-extrabold text-xl opacity-20 italic">
+            наполняем полки...
+          </p>
+        </div>
+      </div>
 
-createApp({
-    data() {
-        return {
-            products: [],
-            currentPage: 1,
-            totalPages: 1,
-            totalProducts: 0,
-            loading: true,
-            error: null,
-            searchQuery: '',
-            searchTimeout: null
+      <!-- Pagination -->
+      <div id="pagination" class="flex items-center justify-center gap-3 pt-4">
+        <!-- Кнопки пагинации -->
+      </div>
+    </main>
+
+    <script>
+      let currentPage = 1;
+      const limit = 10;
+      let totalPages = 1;
+
+      async function loadProducts(page = 1) {
+        currentPage = page;
+        const grid = document.getElementById("products-grid");
+
+        try {
+          const response = await fetch(
+            `/api/products?page=${page}&limit=${limit}`
+          );
+          const data = await response.json();
+
+          totalPages = data.total_pages;
+          renderProducts(data.items);
+          renderPagination();
+
+          // Scroll to top on page change
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (error) {
+          grid.innerHTML = `
+                    <div class="col-span-2 bg-red-100 border-2 border-black rounded-2xl p-6 text-center neo-shadow">
+                        <p class="font-bold text-red-600">Ошибка загрузки. Попробуйте обновить страницу.</p>
+                    </div>
+                `;
         }
-    },
-    methods: {
-        async fetchProducts(page = 1) {
-            this.loading = true;
-            this.error = null;
+      }
 
-            try {
-                const response = await fetch(`/api/products?page=${page}&limit=20`);
-                if (!response.ok) {
-                    throw new Error('Ошибка загрузки товаров');
-                }
+      function renderProducts(products) {
+        const grid = document.getElementById("products-grid");
 
-                const data = await response.json();
-                this.products = data.items;
-                this.currentPage = data.page;
-                this.totalPages = data.total_pages;
-                this.totalProducts = data.total;
-            } catch (err) {
-                this.error = err.message;
-                console.error('Ошибка:', err);
-            } finally {
-                this.loading = false;
-            }
-        },
-        nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.fetchProducts(this.currentPage + 1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        },
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.fetchProducts(this.currentPage - 1);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        },
-        formatPrice(price) {
-            return new Intl.NumberFormat('ru-RU').format(price);
-        },
-        openProduct(id) {
-            window.location.href = `/products/${id}`;
-        },
-        handleImageError(event) {
-            event.target.src = '/static/img/placeholder.png';
-        },
-        debounceSearch() {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                this.filterProducts();
-            }, 500);
-        },
-        filterProducts() {
-            // В будущем можно добавить поиск через API
-            console.log('Поиск:', this.searchQuery);
-            // Пока просто перезагружаем первую страницу
-            this.fetchProducts(1);
+        if (products.length === 0) {
+          grid.innerHTML = `
+                    <div class="col-span-2 bg-white border-2 border-black rounded-2xl p-10 text-center neo-shadow">
+                        <p class="font-bold opacity-50 italic text-lg">Ничего не нашли 🕵️‍♂️</p>
+                    </div>
+                `;
+          return;
         }
-    },
-    mounted() {
-        this.fetchProducts();
-    }
-}).mount('#app');
-</script>
-{% endblock %}
+
+        grid.innerHTML = products
+          .map(
+            (product, index) => `
+                <div class="bg-white border-2 border-black rounded-2xl overflow-hidden neo-shadow flex flex-col fade-in" style="animation-delay: ${
+                  index * 0.05
+                }s">
+                    <a href="/products/${
+                      product.id
+                    }" class="relative aspect-square bg-gray-50 border-b-2 border-black overflow-hidden group">
+                        ${
+                          product.image
+                            ? `<img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">`
+                            : `<div class="w-full h-full flex items-center justify-center text-4xl">📦</div>`
+                        }
+                        <div class="absolute top-2 left-2 px-2 py-0.5 bg-white border border-black rounded-md text-[10px] font-black uppercase">
+                            new
+                        </div>
+                    </a>
+                    <div class="p-3 flex flex-col flex-1 gap-2">
+                        <h3 class="font-extrabold text-sm leading-tight line-clamp-2 h-10">${
+                          product.name
+                        }</h3>
+                        <div class="mt-auto pt-2 flex flex-col gap-2">
+                            <span class="text-lg font-black leading-none">${product.price.toLocaleString()} ₽</span>
+                            <button onclick="addToCart(${
+                              product.id
+                            })" class="w-full py-2 bg-[#FCD34D] border-2 border-black rounded-xl font-extrabold text-xs uppercase neo-press">
+                                купить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderPagination() {
+        const container = document.getElementById("pagination");
+        let buttons = "";
+
+        // Кнопка назад
+        if (currentPage > 1) {
+          buttons += `
+                    <button onclick="loadProducts(${
+                      currentPage - 1
+                    })" class="w-10 h-10 bg-white border-2 border-black rounded-xl flex items-center justify-center font-bold neo-shadow-sm neo-press">
+                        ‹
+                    </button>
+                `;
+        }
+
+        // Номера страниц (упрощенно)
+        for (
+          let i = Math.max(1, currentPage - 1);
+          i <= Math.min(totalPages, currentPage + 1);
+          i++
+        ) {
+          const isActive = i === currentPage;
+          buttons += `
+                    <button onclick="loadProducts(${i})" class="w-10 h-10 ${
+            isActive ? "bg-[#FCD34D]" : "bg-white"
+          } border-2 border-black rounded-xl flex items-center justify-center font-black neo-shadow-sm neo-press">
+                        ${i}
+                    </button>
+                `;
+        }
+
+        // Кнопка вперед
+        if (currentPage < totalPages) {
+          buttons += `
+                    <button onclick="loadProducts(${
+                      currentPage + 1
+                    })" class="w-10 h-10 bg-white border-2 border-black rounded-xl flex items-center justify-center font-bold neo-shadow-sm neo-press">
+                        ›
+                    </button>
+                `;
+        }
+
+        container.innerHTML = buttons;
+      }
+
+      // Заглушка для корзины
+      let count = 0;
+      function addToCart(id) {
+        count++;
+        document.getElementById("cart-counter").innerText = `${count} ТОВАРОВ`;
+        // Здесь можно добавить логику Telegram Haptic Feedback
+        if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred("medium");
+        }
+      }
+
+      // Поиск через MeiliSearch
+      let searchTimeout;
+      document.getElementById("search-input").addEventListener("input", (e) => {
+        const query = e.target.value.trim();
+
+        // Debounce для оптимизации запросов
+        clearTimeout(searchTimeout);
+
+        if (query.length === 0) {
+          loadProducts(1); // Вернуться к обычному каталогу
+          return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+          if (query.length < 2) return; // Минимум 2 символа
+
+          const grid = document.getElementById("products-grid");
+          grid.innerHTML = `
+            <div class="col-span-2 py-10 text-center animate-pulse">
+              <p class="font-extrabold text-lg opacity-20 italic">ищем...</p>
+            </div>
+          `;
+
+          try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=20`);
+            const data = await response.json();
+
+            renderProducts(data.items);
+
+            // Скрыть пагинацию при поиске
+            document.getElementById("pagination").innerHTML = `
+              <p class="text-sm font-bold opacity-50">Найдено: ${data.total} товаров</p>
+            `;
+          } catch (error) {
+            console.error("Ошибка поиска:", error);
+            grid.innerHTML = `
+              <div class="col-span-2 bg-red-100 border-2 border-black rounded-2xl p-6 text-center neo-shadow">
+                <p class="font-bold text-red-600">Ошибка поиска. Попробуйте снова.</p>
+              </div>
+            `;
+          }
+        }, 300); // Задержка 300мс
+      });
+
+      window.onload = () => loadProducts(1);
+    </script>
+  </body>
+</html>
