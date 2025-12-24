@@ -8,4 +8,5 @@ ADD . /app
 
 RUN uv sync --locked
 
-CMD [ "uv", "run", "main.py"]
+# Default command (can be overridden in docker-compose)
+CMD [ "uv", "run", "python", "-m", "mdm_bot.bot"]

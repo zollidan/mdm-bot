@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name if product else 'Товар' }} - MDM Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-detail {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .product-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        padding: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .product-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .product-image-container {
+        text-align: center;
+    }
+
+    .product-image-large {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .product-details {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .product-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .product-vendor-code {
+        color: #7f8c8d;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+
+    .product-price-large {
+        font-size: 36px;
+        font-weight: 700;
+        color: #27ae60;
+        margin: 20px 0;
+    }
+
+    .product-description {
+        color: #555;
+        line-height: 1.6;
+        font-size: 16px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #7f8c8d;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #3498db;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .product-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .meta-label {
+        color: #7f8c8d;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    .meta-value {
+        color: #2c3e50;
+        font-size: 16px;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="app">
+    <a href="/products" class="back-link">← Вернуться к каталогу</a>
+
+    <div v-if="loading" class="loading">
+        ⏳ Загрузка товара...
+    </div>
+
+    <div v-if="error" class="error">
+        ❌ {{ error }}
+    </div>
+
+    <div v-if="!loading && !error && product" class="product-detail">
+        <div class="product-layout">
+            <div class="product-image-container">
+                <img
+                    :src="product.image || '/static/img/placeholder.png'"
+                    :alt="product.name"
+                    class="product-image-large"
+                    @error="handleImageError"
+                >
+            </div>
+
+            <div class="product-details">
+                <div>
+                    <h1 class="product-title">{{ product.name }}</h1>
+                    <div class="product-vendor-code" v-if="product.vendor_code">
+                        Артикул: {{ product.vendor_code }}
+                    </div>
+                </div>
+
+                <div class="product-price-large">
+                    {{ formatPrice(product.price) }} ₽
+                </div>
+
+                <div class="product-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">ID товара</span>
+                        <span class="meta-value">#{{ product.id }}</span>
+                    </div>
+                    <div class="meta-item" v-if="product.vendor_code">
+                        <span class="meta-label">Артикул</span>
+                        <span class="meta-value">{{ product.vendor_code }}</span>
+                    </div>
+                </div>
+
+                <div class="product-description" v-if="product.description">
+                    <h3 style="margin-bottom: 10px; color: #2c3e50;">Описание</h3>
+                    <p>{{ product.description }}</p>
+                </div>
+
+                <div class="product-actions">
+                    <button class="btn btn-primary" @click="addToCart">
+                        🛒 Добавить в корзину
+                    </button>
+                    <button class="btn btn-secondary" @click="addToFavorites">
+                        ⭐ В избранное
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            product: null,
+            loading: true,
+            error: null,
+            productId: {{ product_id }}
+        }
+    },
+    methods: {
+        async fetchProduct() {
+            this.loading = true;
+            this.error = null;
+
+            try {
+                const response = await fetch(`/api/products/${this.productId}`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Товар не найден');
+                    }
+                    throw new Error('Ошибка загрузки товара');
+                }
+
+                this.product = await response.json();
+            } catch (err) {
+                this.error = err.message;
+                console.error('Ошибка:', err);
+            } finally {
+                this.loading = false;
+            }
+        },
+        formatPrice(price) {
+            return new Intl.NumberFormat('ru-RU').format(price);
+        },
+        handleImageError(event) {
+            event.target.src = '/static/img/placeholder.png';
+        },
+        addToCart() {
+            // Здесь можно добавить логику добавления в корзину через API
+            alert(`Товар "${this.product.name}" добавлен в корзину!`);
+        },
+        addToFavorites() {
+            // Здесь можно добавить логику добавления в избранное через API
+            alert(`Товар "${this.product.name}" добавлен в избранное!`);
+        }
+    },
+    mounted() {
+        this.fetchProduct();
+    }
+}).mount('#app');
+</script>
+{% endblock %}

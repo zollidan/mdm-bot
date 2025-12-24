@@ -1,17 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
 .env
 .env.local
-*.log
-*.db
-__pycache__
-.ruff_cache
-.venv
-*.csv
-docker-compose.override.yml
-postgresus-data/
-backups/
+.env.*.local
 
-# Webapp
-webapp/node_modules/
-webapp/dist/
-webapp/.env
-webapp/.env.local
+# Logs
+*.log
+mdm.log
+mdm_bot.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+postgresus-data/
+full_database.csv
+old_db_lite.csv
+
+# Temporary files
+*.tmp
+*.bak

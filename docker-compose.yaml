@@ -2,7 +2,7 @@ services:
   bot:
     build: .
     env_file: .env
-    command: uv run main.py
+    command: uv run python -m mdm_bot.bot
     environment:
       - POSTGRES_HOST=postgres
       - MEILI_HOST=meilisearch
@@ -23,7 +23,7 @@ services:
   api:
     build: .
     env_file: .env
-    command: uv run uvicorn api_server:app --host 0.0.0.0 --port 8000
+    command: uv run uvicorn mdm_bot.api.app:app --host 0.0.0.0 --port 8000
     environment:
       - POSTGRES_HOST=postgres
       - MEILI_HOST=meilisearch
@@ -38,24 +38,6 @@ services:
           memory: 512M
     networks:
       - default
-
-  webapp:
-    build:
-      context: ./webapp
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    depends_on:
-      - api
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-    networks:
-      - default
-
   postgres:
     image: postgres:16-alpine
     env_file: .env

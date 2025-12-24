@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - MDM Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 40px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 40px;
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .hero h2 {
+        font-size: 42px;
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+
+    .hero p {
+        font-size: 18px;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto 30px;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-white {
+        background: white;
+        color: #667eea;
+    }
+
+    .btn-white:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: white;
+        border: 2px solid white;
+    }
+
+    .btn-outline:hover {
+        background: white;
+        color: #667eea;
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin: 40px 0;
+    }
+
+    .feature-card {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: transform 0.3s;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .feature-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .feature-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    .feature-description {
+        color: #7f8c8d;
+        line-height: 1.6;
+    }
+
+    .stats-section {
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        margin: 40px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 30px;
+        text-align: center;
+    }
+
+    .stat-item {
+        padding: 20px;
+    }
+
+    .stat-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: #3498db;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="app">
+    <div class="hero">
+        <h2>🛍️ Добро пожаловать в MDM Bot</h2>
+        <p>Ваш надежный помощник для покупок в Telegram. Быстрый поиск, удобный каталог и простое оформление заказов.</p>
+        <div class="hero-buttons">
+            <a href="/products" class="btn btn-white">📦 Открыть каталог</a>
+            <a href="/api/docs" class="btn btn-outline" target="_blank">📚 API Документация</a>
+        </div>
+    </div>
+
+    <div class="features">
+        <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <div class="feature-title">Быстрый поиск</div>
+            <div class="feature-description">
+                Найдите нужный товар по названию или артикулу за секунды
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🛒</div>
+            <div class="feature-title">Корзина покупок</div>
+            <div class="feature-description">
+                Добавляйте товары в корзину и оформляйте заказ в несколько кликов
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">⭐</div>
+            <div class="feature-title">Избранное</div>
+            <div class="feature-description">
+                Сохраняйте понравившиеся товары для быстрого доступа
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">📦</div>
+            <div class="feature-title">История заказов</div>
+            <div class="feature-description">
+                Отслеживайте статус ваших заказов в личном кабинете
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">👤</div>
+            <div class="feature-title">Профиль</div>
+            <div class="feature-description">
+                Управляйте своими данными и адресами доставки
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">💬</div>
+            <div class="feature-title">Поддержка 24/7</div>
+            <div class="feature-description">
+                Получайте помощь от нашего бота в любое время
+            </div>
+        </div>
+    </div>
+
+    <div v-if="!loading" class="stats-section">
+        <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">📊 Статистика магазина</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">{{ totalProducts }}</div>
+                <div class="stat-label">Товаров в каталоге</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">24/7</div>
+                <div class="stat-label">Работаем для вас</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">⚡</div>
+                <div class="stat-label">Быстрая доставка</div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="loading" class="loading">
+        ⏳ Загрузка данных...
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            totalProducts: 0,
+            loading: true
+        }
+    },
+    methods: {
+        async fetchStats() {
+            try {
+                const response = await fetch('/api/products?page=1&limit=1');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.totalProducts = data.total;
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки статистики:', err);
+            } finally {
+                this.loading = false;
+            }
+        }
+    },
+    mounted() {
+        this.fetchStats();
+    }
+}).mount('#app');
+</script>
+{% endblock %}
