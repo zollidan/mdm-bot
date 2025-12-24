@@ -15,12 +15,12 @@ def main_kb() -> InlineKeyboardMarkup:
     webapp_url = getattr(settings, 'WEBAPP_URL', 'https://your-domain.com')
     kb.button(text="🛍️ Открыть каталог", web_app=WebAppInfo(url=webapp_url))
 
-    kb.button(text="Поиск", callback_data="search")
-    kb.button(text="Моя корзина", callback_data="cart")
-    kb.button(text="Избранное", callback_data="favorites")
-    kb.button(text="Профиль", callback_data="profile")
-    # kb.button(text="Оставить отзыв", callback_data="review")
-    kb.button(text="Помощь", callback_data="help")
+    kb.button(text="🔍 Поиск", callback_data="search")
+    kb.button(text="🛒 Моя корзина", callback_data="cart")
+    kb.button(text="⭐ Избранное", callback_data="favorites")
+    kb.button(text="📦 Мои заказы", callback_data="orders")
+    kb.button(text="👤 Профиль", callback_data="profile")
+    kb.button(text="❓ Помощь", callback_data="help")
 
     kb.adjust(1)
     return kb.as_markup()
