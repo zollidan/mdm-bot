@@ -89,7 +89,7 @@
             🔍
           </div>
         </div>
-
+        <!-- add Filter list with categories -->
         <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           <button
             class="px-4 py-2 bg-[#FCD34D] border-2 border-black rounded-xl font-extrabold text-sm whitespace-nowrap neo-press"
@@ -289,7 +289,9 @@
           `;
 
           try {
-            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=20`);
+            const response = await fetch(
+              `/api/search?q=${encodeURIComponent(query)}&limit=20`
+            );
             const data = await response.json();
 
             renderProducts(data.items);
