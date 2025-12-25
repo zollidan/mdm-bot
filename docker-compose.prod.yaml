@@ -5,7 +5,7 @@ services:
   bot:
     build: .
     env_file: .env
-    command: uv run main.py
+    command: uv run -m mdm_bot.bot
     environment:
       - POSTGRES_HOST=postgres
       - MEILI_HOST=meilisearch
@@ -31,7 +31,7 @@ services:
   api:
     build: .
     env_file: .env
-    command: uv run uvicorn api_server:app --host 0.0.0.0 --port 8000 --workers 2
+    command: uv run uvicorn mdm_bot.run_api:app --host 0.0.0.0 --port 8000 --workers 2
     environment:
       - POSTGRES_HOST=postgres
       - MEILI_HOST=meilisearch
@@ -85,7 +85,15 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
