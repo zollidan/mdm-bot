@@ -33,16 +33,7 @@ func InitDatabase(settings *config.Settings) (*gorm.DB, error) {
 // CreateTables creates all database tables
 func CreateTables(db *gorm.DB) error {
 	// AutoMigrate will create tables if they don't exist
-	err := db.AutoMigrate(
-		&models.User{},
-		// Add other models here as needed:
-		// &models.Product{},
-		// &models.CartItem{},
-		// &models.Favorite{},
-		// &models.Orders{},
-		// &models.OrderItems{},
-		// &models.Reviews{},
-	)
+	err := db.AutoMigrate(models.AllModels()...)
 	if err != nil {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
