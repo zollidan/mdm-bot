@@ -12,21 +12,24 @@ import (
 	"mdm-bot/internal/api/handlers"
 	customMiddleware "mdm-bot/internal/api/middleware"
 	"mdm-bot/internal/config"
+	"mdm-bot/internal/search"
 )
 
 // Server represents the API server
 type Server struct {
-	router   *chi.Mux
-	db       *gorm.DB
-	settings *config.Settings
+	router      *chi.Mux
+	db          *gorm.DB
+	settings    *config.Settings
+	meiliClient *search.Client
 }
 
 // NewServer creates a new API server instance
-func NewServer(db *gorm.DB, settings *config.Settings) *Server {
+func NewServer(db *gorm.DB, settings *config.Settings, meiliClient *search.Client) *Server {
 	s := &Server{
-		router:   chi.NewRouter(),
-		db:       db,
-		settings: settings,
+		router:      chi.NewRouter(),
+		db:          db,
+		settings:    settings,
+		meiliClient: meiliClient,
 	}
 
 	s.setupMiddleware()
@@ -54,7 +57,7 @@ func (s *Server) setupMiddleware() {
 // setupRoutes configures all API routes
 func (s *Server) setupRoutes() {
 	// Initialize handlers
-	productHandler := handlers.NewProductHandler(s.db)
+	productHandler := handlers.NewProductHandler(s.db, s.meiliClient)
 
 	// API routes
 	s.router.Route("/api", func(r chi.Router) {

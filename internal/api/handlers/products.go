@@ -11,16 +11,21 @@ import (
 
 	"mdm-bot/internal/models"
 	"mdm-bot/internal/schemas"
+	"mdm-bot/internal/search"
 )
 
 // ProductHandler handles product-related requests
 type ProductHandler struct {
-	db *gorm.DB
+	db          *gorm.DB
+	meiliClient *search.Client
 }
 
 // NewProductHandler creates a new product handler
-func NewProductHandler(db *gorm.DB) *ProductHandler {
-	return &ProductHandler{db: db}
+func NewProductHandler(db *gorm.DB, meiliClient *search.Client) *ProductHandler {
+	return &ProductHandler{
+		db:          db,
+		meiliClient: meiliClient,
+	}
 }
 
 // GetProducts returns paginated list of products
@@ -132,7 +137,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-// SearchProducts searches for products
+// SearchProducts searches for products using MeiliSearch
 // GET /api/search?q=query&limit=20
 func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
@@ -150,16 +155,10 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 		limit = 20
 	}
 
-	// Simple search by name or vendor code
-	// TODO: Integrate with MeiliSearch for better search
-	var products []models.Product
-	searchPattern := "%" + query + "%"
-	err := h.db.
-		Where("name ILIKE ? OR vendor_code ILIKE ?", searchPattern, searchPattern).
-		Limit(limit).
-		Find(&products).Error
-
+	// Search using MeiliSearch
+	productIDs, err := h.meiliClient.SearchProducts(query, int64(limit))
 	if err != nil {
+		// Fallback to database search if MeiliSearch fails
 		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, schemas.ErrorResponse{
 			Error:  "Search error",
@@ -168,16 +167,46 @@ func (h *ProductHandler) SearchProducts(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Convert to response DTOs
-	items := make([]schemas.ProductResponse, len(products))
-	for i, p := range products {
-		items[i] = schemas.ProductResponse{
-			ID:          p.ID,
-			Name:        p.Name,
-			Price:       p.Price,
-			Image:       &p.Image,
-			VendorCode:  &p.VendorCode,
-			Description: p.Description,
+	// If no results from MeiliSearch, return empty response
+	if len(productIDs) == 0 {
+		response := schemas.SearchResponse{
+			Items: []schemas.ProductResponse{},
+			Total: 0,
+			Query: query,
+		}
+		render.JSON(w, r, response)
+		return
+	}
+
+	// Fetch products by IDs from database
+	var products []models.Product
+	if err := h.db.Where("id IN ?", productIDs).Find(&products).Error; err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, schemas.ErrorResponse{
+			Error:  "Database error",
+			Detail: err.Error(),
+		})
+		return
+	}
+
+	// Create a map for quick lookup and preserve order from MeiliSearch
+	productMap := make(map[int]models.Product)
+	for _, p := range products {
+		productMap[int(p.ID)] = p
+	}
+
+	// Build response in the order returned by MeiliSearch
+	items := make([]schemas.ProductResponse, 0, len(productIDs))
+	for _, id := range productIDs {
+		if p, ok := productMap[id]; ok {
+			items = append(items, schemas.ProductResponse{
+				ID:          p.ID,
+				Name:        p.Name,
+				Price:       p.Price,
+				Image:       &p.Image,
+				VendorCode:  &p.VendorCode,
+				Description: p.Description,
+			})
 		}
 	}
 

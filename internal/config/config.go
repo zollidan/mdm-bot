@@ -65,6 +65,11 @@ func (s *Settings) GetDatabaseURL() string {
 	)
 }
 
+// GetMeiliSearchURL constructs MeiliSearch connection URL
+func (s *Settings) GetMeiliSearchURL() string {
+	return fmt.Sprintf("http://%s:%s", s.MeiliHost, s.MeiliPort)
+}
+
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
