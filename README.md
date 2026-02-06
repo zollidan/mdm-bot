@@ -1,68 +1,36 @@
-# MDM Bot
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Telegram бот с веб-приложением для управления каталогом товаров.
+## Getting Started
 
-## Быстрый старт с Docker
-
-```bash
-# Создайте .env файл с токеном бота
-cp .env.example .env
-# Отредактируйте .env и добавьте свой BOT_TOKEN
-
-# Запустите все сервисы
-docker-compose up -d
-```
-
-Подробнее в [DOCKER.md](DOCKER.md)
-
-## Установка для разработки
+First, run the development server:
 
 ```bash
-uv sync
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## Настройка
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-1. Создайте Telegram бота через [@BotFather](https://t.me/botfather)
-2. Скопируйте `.env.example` в `.env`
-3. Добавьте токен бота в `.env`:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```env
-BOT_TOKEN=your_bot_token_here
-WEBAPP_URL=http://localhost:5173
-```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Запуск
+## Learn More
 
-### Backend (FastAPI)
+To learn more about Next.js, take a look at the following resources:
 
-```bash
-uv run uvicorn main:app --reload
-```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-### Frontend (React)
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-```bash
-cd frontend
-bun run dev
-```
+## Deploy on Vercel
 
-### Telegram Bot
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-```bash
-uv run python bot.py
-```
-
-## Структура проекта
-
-- `main.py` - FastAPI backend
-- `bot.py` - Telegram бот
-- `models.py` - SQLAlchemy модели
-- `schemas.py` - Pydantic схемы
-- `crud.py` - CRUD операции
-- `database.py` - Настройка БД
-- `frontend/` - React приложение
-
-## API
-
-Документация API доступна на http://localhost:8000/docs
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
