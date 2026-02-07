@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { ArrowRight, MapPin, Phone, Mail, Clock } from "lucide-react";
 import {
@@ -8,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-export const ContactPage = () => {
+export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -267,4 +269,4 @@ export const ContactPage = () => {
       </Dialog>
     </div>
   );
-};
+}

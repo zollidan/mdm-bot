@@ -1,5 +1,4 @@
-import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
 
 export const Footer = () => {
   return (
@@ -19,14 +18,19 @@ export const Footer = () => {
           <div>
             <h4 className="text-label text-gray-400 mb-6">Navigation</h4>
             <ul className="space-y-3">
-              {["Home", "Catalog", "About", "Contact"].map((item) => (
-                <li key={item}>
-                  <button
-                    onClick={() => {}}
+              {[
+                { name: "Home", href: "/" },
+                { name: "Catalog", href: "/catalog" },
+                { name: "About", href: "/about" },
+                { name: "Contact", href: "/contact" },
+              ].map((item) => (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
                     className="text-sm text-gray-600 hover:text-black transition-colors"
                   >
-                    {item}
-                  </button>
+                    {item.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -36,14 +40,19 @@ export const Footer = () => {
           <div>
             <h4 className="text-label text-gray-400 mb-6">Categories</h4>
             <ul className="space-y-3">
-              {["Furniture", "Lighting", "Decor", "Objects"].map((item) => (
-                <li key={item}>
-                  <button
-                    onClick={() => {}}
+              {[
+                { name: "Furniture", slug: "furniture" },
+                { name: "Lighting", slug: "lighting" },
+                { name: "Decor", slug: "decor" },
+                { name: "Objects", slug: "objects" },
+              ].map((item) => (
+                <li key={item.name}>
+                  <Link
+                    href={`/catalog?category=${item.slug}`}
                     className="text-sm text-gray-600 hover:text-black transition-colors"
                   >
-                    {item}
-                  </button>
+                    {item.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -55,12 +64,18 @@ export const Footer = () => {
             © 2024 FORME. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <button className="text-xs text-gray-400 hover:text-black transition-colors">
+            <Link
+              href="/privacy"
+              className="text-xs text-gray-400 hover:text-black transition-colors"
+            >
               Privacy Policy
-            </button>
-            <button className="text-xs text-gray-400 hover:text-black transition-colors">
+            </Link>
+            <Link
+              href="/terms"
+              className="text-xs text-gray-400 hover:text-black transition-colors"
+            >
               Terms of Service
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,6 +1,9 @@
-import { useEffect } from "react";
+"use client";
 
-export const AboutPage = () => {
+import { useEffect } from "react";
+import Image from "next/image";
+
+export default function AboutPage() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -51,11 +54,13 @@ export const AboutPage = () => {
 
       {/* Full Width Image */}
       <section className="reveal-on-scroll" style={{ opacity: 0 }}>
-        <div className="w-full aspect-[21/9] overflow-hidden">
-          <img
+        <div className="w-full aspect-[21/9] overflow-hidden relative">
+          <Image
             src="/hero.jpg"
             alt="Our showroom"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="100vw"
           />
         </div>
       </section>
@@ -157,11 +162,15 @@ export const AboutPage = () => {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
             <div className="reveal-on-scroll" style={{ opacity: 0 }}>
-              <img
-                src="/about.jpg"
-                alt="Our design process"
-                className="w-full aspect-[3/4] object-cover"
-              />
+              <div className="w-full aspect-[3/4] relative">
+                <Image
+                  src="/about.jpg"
+                  alt="Our design process"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              </div>
             </div>
             <div className="reveal-on-scroll" style={{ opacity: 0 }}>
               <p className="text-label text-gray-400 mb-6">THE TEAM</p>
@@ -206,4 +215,4 @@ export const AboutPage = () => {
       </section>
     </div>
   );
-};
+}
