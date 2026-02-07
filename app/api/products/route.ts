@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/src/db';
-import { products } from '@/src/db/schema';
+import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { products } from "@/db/schema";
 
 export async function GET() {
   try {
     const allProducts = await db.select().from(products);
     return NextResponse.json(allProducts);
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
+      { error: "Failed to fetch products" },
+      { status: 500 },
     );
   }
 }
@@ -31,10 +31,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
+      { error: "Failed to create product" },
+      { status: 500 },
     );
   }
 }
